@@ -1,0 +1,33 @@
+#Python
+*.pyc
+.coverage
+*.egg-info
+
+# Dotenv
+.env
+
+# direnv
+.direnv
+
+# misc
+tmp/
+
+# Build artifacts:
+# 'uv build' (see .github/workflows/pypi.yaml) generates these
+# CI publishes from here
+/dist/
+/build/
+
+# Zensical docs build output (`zensical build`)
+/site/
+
+#logs
+info.log
+
+# osx
+.DS_Store
+._*
+
+# data and conf directories (for testing)
+data/
+conf/
