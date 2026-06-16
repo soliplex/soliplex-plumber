@@ -1,14 +1,103 @@
+# Packaging for `soliplex-plumber`: stdlib-only tools for reading and modifying
+# the configuration of an *existing* Soliplex stack. The shared dependency for
+# skill projects that wire rooms / edit `installation.yaml` (see README.md).
+#
+# Dependency groups (https://docs.astral.sh/uv/concepts/dependencies):
+#   - dev:  test + lint tooling (`uv run pytest`, etc.)
+#   - docs: zensical, which builds the documentation site under docs/ into
+#           site/ (`uv run zensical build`) and drives the docs CI workflow.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "soliplex-plumber"
-version = "0.1de0"
-description = "tools for modifying a Soliplex stack"
+version = "0.1dev0"
+description = "Read and modify the configuration of an existing Soliplex stack."
 readme = "README.md"
-authors = [
-    { name = "Tres Seaver", email = "tseaver@palladion.com" }
-]
+license = "MIT"
 requires-python = ">=3.12"
+authors = [{ name = "Soliplex" }]
+keywords = ["soliplex", "rooms", "installation", "stack", "configuration"]
+
 dependencies = []
 
-[build-system]
-requires = ["uv_build>=0.11.1,<0.12.0"]
-build-backend = "uv_build"
+[project.urls]
+Homepage = "https://soliplex.github.io/soliplex-plumber/"
+Repository = "https://github.com/soliplex/soliplex-plumber"
+
+[dependency-groups]
+dev = [
+    "coverage",
+    "pymarkdownlnt",
+    "pytest",
+    "pytest-cov",
+    # Pinned to match the ruff-pre-commit hook rev in .pre-commit-config.yaml,
+    # so `uv run ruff format` and the commit hook never disagree.
+    "ruff==0.15.10",
+]
+docs = [
+    "zensical",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/soliplex_plumber"]
+
+# Test + coverage configuration, mirroring ../soliplex-skills/pyproject.toml:
+# 100% branch coverage of both the package and the test suite is required.
+[tool.pytest.ini_options]
+pythonpath = [".", "tests/unit"]
+python_files = "test_*.py"
+testpaths = ["tests/unit"]
+addopts = "--cov=soliplex_plumber --cov=tests/unit --cov-branch --cov-fail-under=100"
+
+[tool.coverage.report]
+show_missing = true
+
+# Linting configuration imported from ../soliplex-skills/pyproject.toml.
+# (target-version set to py312 to match this repo's requires-python.)
+[tool.ruff]
+line-length = 79
+exclude = [
+]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    # flake8
+    "F",
+    # pycodestyle
+    "E",
+    # flake8-bugbear
+    "B",
+    # pyupgrade
+    "U",
+    # isort
+    "I",
+    # pandas vet
+    "PD",
+    # tryceratops
+    "TRY",
+    # flake8-pytest-style
+    "PT",
+]
+ignore = [
+    "PT019",  # incorrecly flags '@mock.patch' args as fixtures
+]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-names-type = "csv"
+
+[tool.pymarkdown]
+extensions.front-matter.enabled = true
+plugins.line-length.enabled = false             # md013
+plugins.no-duplicate-heading.enabled = false    # md024
+plugins.no-inline-html.enabled = false          # md033
+plugins.no-emphasis-as-heading.enabled = false  # md036
+plugins.first-line-heading.enabled = false      # md041
+plugins.code-block-style.enabled = false        # md046
+# There is no rule 'md060'
+# plugins.md060.enabled = false                 # md060
