@@ -56,14 +56,18 @@ non-default parent is added).
 
 | Member | Purpose |
 | --- | --- |
-| `validate_room_id(room_id)` | enforce the room-id / path-segment rule (`ROOM_ID_RE`); raises `AddRoomError` |
+| `validate_room_id(room_id)` | enforce the room-id / path-segment rule (`ROOM_ID_RE`); raises `BadRoomId` |
 | `resolve_project(project_dir)` | resolve + verify the stack root (has `COMPOSE_FILE` and `INSTALLATION_FILE`) |
 | `resolve_package_name(project, override)` | the stack's own package (inferred from `src/<pkg>/tools.py`) or `DEFAULT_PACKAGE_NAME` |
 | `room_parent_candidates(project)` | the `room_paths` container entries a caller can offer as a `parent_path` (or `["./rooms"]` when absent) |
 | `install_room(project, room_id, *, config_text, prompt_text=None, parent_path, force=False, dry_run=False)` | write the room dir from a rendered `config_text` (+ optional prompt) under `parent_path` and wire `room_paths` |
 | `install_room_from(project, room_id, src_dir, *, parent_path, force=False, dry_run=False)` | the same, but *copy* the `src_dir` template tree (multi-file); the caller patches the copied files afterward |
 | `RoomInstalled(config_path, path_action)` | the install outcome (alias `RoomInstall` kept for back-compat) |
-| `AddRoomError` | user-facing error with message-factory classmethods (incl. `bad_room_id`, `parent_is_room`) |
+| `AddRoomError` | base class for user-facing errors |
+| `ComposeNotFound(AddRoomError)` | No `docker-compose.yaml` found |
+| `NotAStack(AddRoomError)` | target lacks required template-generated files |
+| `BadRoomId(AddRoomError)` | invalid room ID syntac |
+| `ParentIsRoom(AddRoomError)` | room directory exists |
 | `RoomExists(AddRoomError)` | Allows users to catch this error specifically |
 | `ADDED` / `UNCHANGED` / `COVERED` | the `installation.TargetAction` members, re-exported |
 | `ROOMS_PARENT_ENTRY` | the `./rooms` default-discovery container |

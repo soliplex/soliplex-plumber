@@ -106,7 +106,7 @@ def test_validate_room_id_accepts(room_id):
 
 @pytest.mark.parametrize("room_id", ["", ".hidden", "a/b", "a b", "../x"])
 def test_validate_room_id_rejects(room_id):
-    with pytest.raises(rooms.AddRoomError, match="must match"):
+    with pytest.raises(rooms.BadRoomId):
         rooms.validate_room_id(room_id)
 
 
@@ -121,17 +121,17 @@ def test_resolve_project_ok(tmp_path):
     assert result == project.resolve()
 
 
-def test_resolve_project_no_compose(tmp_path):
+def test_resolve_project_compose_not_found(tmp_path):
     project = _make_stack(tmp_path, compose=False)
 
-    with pytest.raises(rooms.AddRoomError, match="docker-compose.yml"):
+    with pytest.raises(rooms.ComposeNotFound):
         rooms.resolve_project(str(project))
 
 
 def test_resolve_project_not_a_stack(tmp_path):
     project = _make_stack(tmp_path, installation=False)
 
-    with pytest.raises(rooms.AddRoomError, match="not a generated"):
+    with pytest.raises(rooms.NotAStack):
         rooms.resolve_project(str(project))
 
 
@@ -381,7 +381,7 @@ def test_install_room_rejects_parent_that_is_a_room(tmp_path):
     # ./rooms is a room
     _write_text(rooms_dir / "room_config.yaml", rooms_id_yaml)
 
-    with pytest.raises(rooms.AddRoomError, match="itself a room"):
+    with pytest.raises(rooms.ParentIsRoom):
         rooms.install_room(
             project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
         )
