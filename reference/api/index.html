@@ -577,7 +577,7 @@ non-default parent is added).</p>
 <tbody>
 <tr>
 <td><code>validate_room_id(room_id)</code></td>
-<td>enforce the room-id / path-segment rule (<code>ROOM_ID_RE</code>); raises <code>AddRoomError</code></td>
+<td>enforce the room-id / path-segment rule (<code>ROOM_ID_RE</code>); raises <code>BadRoomId</code></td>
 </tr>
 <tr>
 <td><code>resolve_project(project_dir)</code></td>
@@ -605,7 +605,23 @@ non-default parent is added).</p>
 </tr>
 <tr>
 <td><code>AddRoomError</code></td>
-<td>user-facing error with message-factory classmethods (incl. <code>bad_room_id</code>, <code>parent_is_room</code>)</td>
+<td>base class for user-facing errors</td>
+</tr>
+<tr>
+<td><code>ComposeNotFound(AddRoomError)</code></td>
+<td>No <code>docker-compose.yaml</code> found</td>
+</tr>
+<tr>
+<td><code>NotAStack(AddRoomError)</code></td>
+<td>target lacks required template-generated files</td>
+</tr>
+<tr>
+<td><code>BadRoomId(AddRoomError)</code></td>
+<td>invalid room ID syntac</td>
+</tr>
+<tr>
+<td><code>ParentIsRoom(AddRoomError)</code></td>
+<td>room directory exists</td>
 </tr>
 <tr>
 <td><code>RoomExists(AddRoomError)</code></td>
