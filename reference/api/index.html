@@ -356,6 +356,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#soliplex_config-query-a-running-stacks-resolved-installation-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>soliplex_config</code> — query a running stack's resolved installation config
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -431,6 +442,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>rooms</code> — install a room into a Soliplex stack
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#soliplex_config-query-a-running-stacks-resolved-installation-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>soliplex_config</code> — query a running stack's resolved installation config
       </span>
     </span>
   </a>
@@ -634,6 +656,81 @@ non-default parent is added).</p>
 <tr>
 <td><code>ROOMS_PARENT_ENTRY</code></td>
 <td>the <code>./rooms</code> default-discovery container</td>
+</tr>
+</tbody>
+</table>
+<h2 id="soliplex_config-query-a-running-stacks-resolved-installation-config"><code>soliplex_config</code> — query a running stack's resolved installation config<a class="headerlink" href="#soliplex_config-query-a-running-stacks-resolved-installation-config" title="Permanent link">&para;</a></h2>
+<p>The one module that does <strong>not</strong> do pure filesystem work: it runs
+<code>soliplex-cli config &lt;installation&gt;</code> inside a one-off backend container
+(<code>docker compose run --rm</code>) and parses the resolved-config YAML. It therefore
+needs <strong>Docker</strong> on <code>PATH</code>. It installs the <strong><code>soliplex-config</code></strong> console
+script (<code>run</code> wraps <code>main</code> with the user-facing error handling) and backs a
+thin <code>soliplex-cli config</code> shim; the host-mapping helpers honor the resolved
+<code>room_paths</code>, mapping each back through the backend's
+<code>&lt;host-environment&gt; → &lt;installation&gt;</code> bind mount.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resolve_project(project_dir)</code></td>
+<td>resolve a stack root requiring a <code>docker-compose.yml</code>; raises <code>ComposeNotFound</code></td>
+</tr>
+<tr>
+<td><code>run_config(project, service, cli, installation)</code></td>
+<td>run <code>soliplex-cli config</code> in a one-off backend container, returning its stdout</td>
+</tr>
+<tr>
+<td><code>parse_config(stdout)</code></td>
+<td>parse the YAML body (banner comments and all) into a dict (<code>{}</code> if not a mapping)</td>
+</tr>
+<tr>
+<td><code>navigate(config, key)</code></td>
+<td>resolve a dotted <code>key</code> (mapping names / sequence indices) into the config; raises <code>KeyNotFound</code></td>
+</tr>
+<tr>
+<td><code>render_value(value, fmt)</code></td>
+<td>render a value <code>plain</code> (scalar bare, list-of-scalars one per line, else YAML) or <code>yaml</code></td>
+</tr>
+<tr>
+<td><code>map_to_host(container_path, installation, host_environment)</code></td>
+<td>map an in-container room path to its host location, or <code>None</code> when outside <code>installation</code></td>
+</tr>
+<tr>
+<td><code>find_room_configs(room_dir)</code></td>
+<td>the <code>room_config.yaml</code> files under a path (single room or its immediate subdirs)</td>
+</tr>
+<tr>
+<td><code>read_room_meta(text)</code></td>
+<td>a room config's <code>{room_id, name, description}</code>, or <code>None</code> (not a mapping / no <code>id</code>)</td>
+</tr>
+<tr>
+<td><code>resolve_rooms(project, service, cli, installation, host_environment)</code></td>
+<td>the loaded rooms' <code>{room_id, name, description}</code> mappings + the unmapped container paths</td>
+</tr>
+<tr>
+<td><code>do_show</code> / <code>do_get</code> / <code>do_rooms</code> / <code>do_room</code></td>
+<td>the subcommand handlers (each takes the parsed <code>argparse.Namespace</code>)</td>
+</tr>
+<tr>
+<td><code>build_parser()</code> / <code>parse_args(argv)</code> / <code>main(argv)</code></td>
+<td>the <code>show</code>/<code>get</code>/<code>rooms</code>/<code>room</code> CLI; <code>main</code> returns the process exit code</td>
+</tr>
+<tr>
+<td><code>run()</code></td>
+<td>the <code>soliplex-config</code> console-script entry point — <code>main(sys.argv[1:])</code> with the user-facing errors below printed (no traceback) as exit code 2</td>
+</tr>
+<tr>
+<td><code>SoliplexConfigError</code></td>
+<td>base class for the user-facing errors below</td>
+</tr>
+<tr>
+<td><code>DockerMissing</code> / <code>ComposeNotFound</code> / <code>NoRoomPaths</code> / <code>KeyNotFound</code> / <code>RoomNotFound</code></td>
+<td>the specific failure modes</td>
 </tr>
 </tbody>
 </table>

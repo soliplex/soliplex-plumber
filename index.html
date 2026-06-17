@@ -420,15 +420,17 @@
 
 
 <h1 id="soliplex-plumber">Soliplex Plumber<a class="headerlink" href="#soliplex-plumber" title="Permanent link">&para;</a></h1>
-<p><code>soliplex-plumber</code> is the shared, <strong>stdlib-only</strong> library for reading and
+<p><code>soliplex-plumber</code> is the shared library for reading and
 modifying the configuration of an <em>existing</em> Soliplex stack. It is the common
 dependency for the skill projects that operate on a generated stack -- the
 <code>soliplex-template</code> skill's <code>add_room.py</code> and the <code>soliplex-concierge</code>
 installer -- so the stack-wiring rules live in one place.</p>
 <div class="admonition note">
 <p class="admonition-title">Status</p>
-<p>The library is implemented and tested (100% branch coverage). It does pure
-filesystem work -- no Docker, no running backend, stdlib only.</p>
+<p>The library is implemented and tested (100% branch coverage). The core
+(<code>rooms</code> / <code>installation</code> / <code>sections</code>) does pure filesystem work -- no
+Docker, no running backend. The <code>soliplex_config</code> module is the
+exception: it queries a <em>running</em> stack, so it needs Docker.</p>
 </div>
 <h2 id="what-it-provides">What it provides<a class="headerlink" href="#what-it-provides" title="Permanent link">&para;</a></h2>
 <ul>
@@ -437,6 +439,10 @@ filesystem work -- no Docker, no running backend, stdlib only.</p>
   <code>installation.yaml</code>'s <code>room_paths</code> loads the room (editing line-based, so
   comments and layout are preserved). See the
   <a href="reference/api/">API reference</a>.</li>
+<li><strong><code>soliplex_config</code></strong> -- query a <em>running</em> stack's resolved installation
+  config via <code>soliplex-cli config</code> in a one-off backend container (<code>show</code> /
+  <code>get</code> / <code>rooms</code> / <code>room</code>); installs the <code>soliplex-config</code> console script.
+  Needs Docker.</li>
 </ul>
 <p>There is no re-exporting package <code>__init__</code>; client code imports the submodule
 and uses its members by dotted name:</p>
