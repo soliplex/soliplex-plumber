@@ -266,62 +266,6 @@
   
   
   
-    
-    
-      
-        
-      
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  API reference
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-  API reference
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-    
-  
-  
-  
     <li class="md-nav__item md-nav__item--active">
       
       
@@ -380,10 +324,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#rooms-add-a-room-to-a-soliplex-stack" class="md-nav__link">
+  <a href="#sections-the-installationyaml-section-catalog" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>rooms</code> — add a room to a Soliplex stack
+        <code>sections</code> — the installation.yaml section catalog
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-edit-a-stacks-installationyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>installation</code> — edit a stack's <code>installation.yaml</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rooms-install-a-room-into-a-soliplex-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>rooms</code> — install a room into a Soliplex stack
       </span>
     </span>
   </a>
@@ -393,14 +359,6 @@
     </ul>
   
 </nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
       
     </li>
   
@@ -447,10 +405,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#rooms-add-a-room-to-a-soliplex-stack" class="md-nav__link">
+  <a href="#sections-the-installationyaml-section-catalog" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <code>rooms</code> — add a room to a Soliplex stack
+        <code>sections</code> — the installation.yaml section catalog
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installation-edit-a-stacks-installationyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>installation</code> — edit a stack's <code>installation.yaml</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rooms-install-a-room-into-a-soliplex-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>rooms</code> — install a room into a Soliplex stack
       </span>
     </span>
   </a>
@@ -475,55 +455,6 @@
   
 
 
-  <nav class="md-path" aria-label="Navigation" >
-    <ol class="md-path__list">
-      
-        
-  
-  
-    <li class="md-path__item">
-      <a href="../.." class="md-path__link">
-        
-  
-  <span class="md-ellipsis">
-    Home
-  </span>
-
-      </a>
-    </li>
-  
-
-      
-      
-        
-  
-  
-    
-    
-      
-        
-      
-    
-    
-    
-    
-      <li class="md-path__item">
-        <a href="././" class="md-path__link">
-          
-  
-  <span class="md-ellipsis">
-    API reference
-  </span>
-
-        </a>
-      </li>
-    
-  
-
-      
-    </ol>
-  </nav>
-
               
               <article class="md-content__inner md-typeset">
                 
@@ -542,11 +473,100 @@ and covered by the test suite (100% branch coverage); the modules under
 <p>There is no re-exporting package <code>__init__</code> — <strong>client code imports the
 submodule and uses its members by dotted name</strong> (e.g. <code>from soliplex_plumber
 import rooms</code> then <code>rooms.install_room(...)</code>).</p>
-<h2 id="rooms-add-a-room-to-a-soliplex-stack"><code>rooms</code> — add a room to a Soliplex stack<a class="headerlink" href="#rooms-add-a-room-to-a-soliplex-stack" title="Permanent link">&para;</a></h2>
-<p>Generic, template-agnostic, stdlib-only logic for wiring a room into a generated
-stack. The shared core behind both the <code>soliplex-template</code> skill's <code>add_room.py</code>
-and the <code>soliplex-concierge</code> installer; it edits <code>installation.yaml</code> line-based so
-comments and layout are preserved.</p>
+<h2 id="sections-the-installationyaml-section-catalog"><code>sections</code> — the installation.yaml section catalog<a class="headerlink" href="#sections-the-installationyaml-section-catalog" title="Permanent link">&para;</a></h2>
+<p>Declarative facts about each editable <code>installation.yaml</code> section, mirroring the
+defaults the backend applies in <code>soliplex.config.installation</code> (the source of
+truth). The editors consult it to decide an absent section's behavior.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Family</code> (<code>DISCOVERY</code> / <code>COLLECTION</code> / <code>WHITELIST</code>)</td>
+<td>how a section behaves when an entry is added</td>
+</tr>
+<tr>
+<td><code>Section(key, family, parent=None, discovery_default=None, kind_field=None)</code></td>
+<td>one section's declarative facts</td>
+</tr>
+<tr>
+<td><code>ROOM_PATHS</code> / <code>ENVIRONMENT</code> / <code>SECRETS</code> / <code>META_TOOL_CONFIGS</code> / <code>SKILL_CONFIGS</code></td>
+<td>the catalog entries</td>
+</tr>
+<tr>
+<td><code>COMPOSE_FILE</code> / <code>ENVIRONMENT_DIR</code> / <code>INSTALLATION_FILE</code> / <code>ROOMS_DIR</code> / <code>STACK_MARKERS</code></td>
+<td>stack-structure constants (re-exported by <code>rooms</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>The families: <strong>discovery</strong> lists default to a directory (<code>room_paths</code> →
+<code>["./rooms"]</code>), so an entry beneath the default is already <em>covered</em> when the
+section is absent; <strong>collection</strong> sections default to empty, so an absent section
+is <em>created</em> to add an entry; <strong>whitelist</strong> (<code>skill_configs</code>) is permissive per
+<code>kind</code> — empty/absent for a kind enables every discovered skill of it.</p>
+<h2 id="installation-edit-a-stacks-installationyaml"><code>installation</code> — edit a stack's <code>installation.yaml</code><a class="headerlink" href="#installation-edit-a-stacks-installationyaml" title="Permanent link">&para;</a></h2>
+<p>Generic, comment-preserving, idempotent, stdlib-only line editors. Each is a
+pure <code>text -&gt; (new_text, TargetAction)</code> function. Scanning is <strong>section-scoped</strong>
+and <strong>comment-skipping</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>add_list_entry(text, *, section, block, probe)</code></td>
+<td>add <code>block</code> under a top-level collection <code>section:</code>; create it if absent</td>
+</tr>
+<tr>
+<td><code>add_nested_list_entry(text, *, parent, section, item, probe)</code></td>
+<td>add <code>item</code> under nested <code>parent.section:</code>; create parent/child if absent</td>
+</tr>
+<tr>
+<td><code>add_environment(text, var_name)</code></td>
+<td>add <code>var_name</code> to <code>environment:</code></td>
+</tr>
+<tr>
+<td><code>add_secret(text, secret_name, *, env_var_name=None)</code></td>
+<td>add an <code>env_var</code>-sourced secret to <code>secrets:</code></td>
+</tr>
+<tr>
+<td><code>add_meta_tool_config(text, class_path)</code></td>
+<td>register <code>class_path</code> under nested <code>meta.tool_configs:</code></td>
+</tr>
+<tr>
+<td><code>add_skill_config(text, skill_name, *, kind="filesystem", confirm=False)</code></td>
+<td>whitelist a skill; <code>COVERED</code> when the kind is permissive; raises <code>WhitelistActive</code> when a kind's whitelist is active (unless <code>confirm</code>)</td>
+</tr>
+<tr>
+<td><code>resolve_stack(stack_dir, markers, error)</code></td>
+<td>resolve a stack root requiring every marker; <code>error(stack, marker)</code> builds the raised exception</td>
+</tr>
+<tr>
+<td><code>WhitelistActive(kind, entries)</code></td>
+<td>the one "stop and confirm" abort — a <code>skill_configs</code> kind already has an explicit whitelist</td>
+</tr>
+<tr>
+<td><code>section_span</code> / <code>is_item</code> / <code>append_section</code></td>
+<td>low-level scoped, comment-aware scan helpers (shared with <code>rooms</code>)</td>
+</tr>
+<tr>
+<td><code>TargetAction(StrEnum)</code> (<code>ADDED</code> / <code>UNCHANGED</code> / <code>COVERED</code>)</td>
+<td>the action a helper reports</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rooms-install-a-room-into-a-soliplex-stack"><code>rooms</code> — install a room into a Soliplex stack<a class="headerlink" href="#rooms-install-a-room-into-a-soliplex-stack" title="Permanent link">&para;</a></h2>
+<p>Writes a room under an explicit <code>parent_path</code> (relative to the installation
+config) and wires its <code>room_paths</code> entry line-based. Append-only: installing a
+room never disables another (the <code>./rooms</code> default is materialized before any
+non-default parent is added).</p>
 <table>
 <thead>
 <tr>
@@ -568,24 +588,32 @@ comments and layout are preserved.</p>
 <td>the stack's own package (inferred from <code>src/&lt;pkg&gt;/tools.py</code>) or <code>DEFAULT_PACKAGE_NAME</code></td>
 </tr>
 <tr>
-<td><code>add_room_path(text, room_id) -&gt; (text, action)</code></td>
-<td>ensure <code>room_paths</code> loads the room; action is <code>ADDED</code> / <code>UNCHANGED</code> / <code>COVERED</code></td>
+<td><code>room_parent_candidates(project)</code></td>
+<td>the <code>room_paths</code> container entries a caller can offer as a <code>parent_path</code> (or <code>["./rooms"]</code> when absent)</td>
 </tr>
 <tr>
-<td><code>install_room(project, room_id, *, config_text, prompt_text=None, force=False, dry_run=False)</code></td>
-<td>write the room dir + config (+ optional prompt) and apply the <code>room_paths</code> edit</td>
+<td><code>install_room(project, room_id, *, config_text, prompt_text=None, parent_path, force=False, dry_run=False)</code></td>
+<td>write the room dir from a rendered <code>config_text</code> (+ optional prompt) under <code>parent_path</code> and wire <code>room_paths</code></td>
+</tr>
+<tr>
+<td><code>install_room_from(project, room_id, src_dir, *, parent_path, force=False, dry_run=False)</code></td>
+<td>the same, but <em>copy</em> the <code>src_dir</code> template tree (multi-file); the caller patches the copied files afterward</td>
 </tr>
 <tr>
 <td><code>RoomInstalled(config_path, path_action)</code></td>
-<td>the <code>install_room</code> outcome (alias <code>RoomInstall</code> kept for back-compat)</td>
+<td>the install outcome (alias <code>RoomInstall</code> kept for back-compat)</td>
 </tr>
 <tr>
 <td><code>AddRoomError</code></td>
-<td>user-facing error with message-factory classmethods</td>
+<td>user-facing error with message-factory classmethods (incl. <code>room_exists</code>, <code>parent_is_room</code>)</td>
 </tr>
 <tr>
-<td><code>ADDED</code> / <code>UNCHANGED</code> / <code>COVERED</code> / <code>ROOMS_PARENT_ENTRY</code></td>
-<td>the <code>room_paths</code> action constants and the <code>./rooms</code> auto-discovery entry</td>
+<td><code>ADDED</code> / <code>UNCHANGED</code> / <code>COVERED</code></td>
+<td>the <code>installation.TargetAction</code> members, re-exported</td>
+</tr>
+<tr>
+<td><code>ROOMS_PARENT_ENTRY</code></td>
+<td>the <code>./rooms</code> default-discovery container</td>
 </tr>
 </tbody>
 </table>
