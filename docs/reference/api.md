@@ -63,6 +63,7 @@ non-default parent is added).
 | `install_room(project, room_id, *, config_text, prompt_text=None, parent_path, force=False, dry_run=False)` | write the room dir from a rendered `config_text` (+ optional prompt) under `parent_path` and wire `room_paths` |
 | `install_room_from(project, room_id, src_dir, *, parent_path, force=False, dry_run=False)` | the same, but *copy* the `src_dir` template tree (multi-file); the caller patches the copied files afterward |
 | `RoomInstalled(config_path, path_action)` | the install outcome (alias `RoomInstall` kept for back-compat) |
-| `AddRoomError` | user-facing error with message-factory classmethods (incl. `room_exists`, `parent_is_room`) |
+| `AddRoomError` | user-facing error with message-factory classmethods (incl. `bad_room_id`, `parent_is_room`) |
+| `RoomExists(AddRoomError)` | Allows users to catch this error specifically |
 | `ADDED` / `UNCHANGED` / `COVERED` | the `installation.TargetAction` members, re-exported |
 | `ROOMS_PARENT_ENTRY` | the `./rooms` default-discovery container |

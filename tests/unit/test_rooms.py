@@ -349,7 +349,7 @@ def test_install_room_exists_without_force(tmp_path):
     project = _make_stack(tmp_path)
     _room_dir(project).mkdir(parents=True)
 
-    with pytest.raises(rooms.AddRoomError, match="already exists"):
+    with pytest.raises(rooms.RoomExists):
         rooms.install_room(
             project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
         )
