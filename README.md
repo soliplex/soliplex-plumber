@@ -1,12 +1,13 @@
 # `soliplex-plumber`: tools for modifying a Soliplex stack
 
-Stdlib-only library for reading and modifying the configuration of an
+Library for reading and modifying the configuration of an
 *existing* Soliplex stack. It is the shared dependency for the skill projects
 that operate on a generated stack — the `soliplex-template` skill's
 `add_room.py` and the `soliplex-concierge` installer — so the stack-wiring
 rules live in one place.
 
-It does pure filesystem work: no Docker, no running backend.
+The core does pure filesystem work: no Docker, no running backend. The
+`soliplex_config` module is the exception — it queries a *running* stack.
 
 ## What it provides
 
@@ -14,6 +15,10 @@ It does pure filesystem work: no Docker, no running backend.
   resolve and validate the stack root, infer its package, and ensure
   `installation.yaml`'s `room_paths` loads the room (editing line-based, so
   comments and layout are preserved).
+- **`soliplex_config`** — query a *running* stack's resolved installation
+  config via `soliplex-cli config` in a one-off backend container (`show` /
+  `get` / `rooms` / `room`); installs the `soliplex-config` console script.
+  Needs Docker.
 
 ```python
 from soliplex_plumber import rooms

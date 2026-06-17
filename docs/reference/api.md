@@ -71,3 +71,31 @@ non-default parent is added).
 | `RoomExists(AddRoomError)` | Allows users to catch this error specifically |
 | `ADDED` / `UNCHANGED` / `COVERED` | the `installation.TargetAction` members, re-exported |
 | `ROOMS_PARENT_ENTRY` | the `./rooms` default-discovery container |
+
+## `soliplex_config` — query a running stack's resolved installation config
+
+The one module that does **not** do pure filesystem work: it runs
+`soliplex-cli config <installation>` inside a one-off backend container
+(`docker compose run --rm`) and parses the resolved-config YAML. It therefore
+needs **Docker** on `PATH`. It installs the **`soliplex-config`** console
+script (`run` wraps `main` with the user-facing error handling) and backs a
+thin `soliplex-cli config` shim; the host-mapping helpers honor the resolved
+`room_paths`, mapping each back through the backend's
+`<host-environment> → <installation>` bind mount.
+
+| Member | Purpose |
+| --- | --- |
+| `resolve_project(project_dir)` | resolve a stack root requiring a `docker-compose.yml`; raises `ComposeNotFound` |
+| `run_config(project, service, cli, installation)` | run `soliplex-cli config` in a one-off backend container, returning its stdout |
+| `parse_config(stdout)` | parse the YAML body (banner comments and all) into a dict (`{}` if not a mapping) |
+| `navigate(config, key)` | resolve a dotted `key` (mapping names / sequence indices) into the config; raises `KeyNotFound` |
+| `render_value(value, fmt)` | render a value `plain` (scalar bare, list-of-scalars one per line, else YAML) or `yaml` |
+| `map_to_host(container_path, installation, host_environment)` | map an in-container room path to its host location, or `None` when outside `installation` |
+| `find_room_configs(room_dir)` | the `room_config.yaml` files under a path (single room or its immediate subdirs) |
+| `read_room_meta(text)` | a room config's `{room_id, name, description}`, or `None` (not a mapping / no `id`) |
+| `resolve_rooms(project, service, cli, installation, host_environment)` | the loaded rooms' `{room_id, name, description}` mappings + the unmapped container paths |
+| `do_show` / `do_get` / `do_rooms` / `do_room` | the subcommand handlers (each takes the parsed `argparse.Namespace`) |
+| `build_parser()` / `parse_args(argv)` / `main(argv)` | the `show`/`get`/`rooms`/`room` CLI; `main` returns the process exit code |
+| `run()` | the `soliplex-config` console-script entry point — `main(sys.argv[1:])` with the user-facing errors below printed (no traceback) as exit code 2 |
+| `SoliplexConfigError` | base class for the user-facing errors below |
+| `DockerMissing` / `ComposeNotFound` / `NoRoomPaths` / `KeyNotFound` / `RoomNotFound` | the specific failure modes |

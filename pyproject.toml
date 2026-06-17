@@ -1,6 +1,8 @@
-# Packaging for `soliplex-plumber`: stdlib-only tools for reading and modifying
-# the configuration of an *existing* Soliplex stack. The shared dependency for
+# Packaging for `soliplex-plumber`: tools for reading and modifying the
+# configuration of an *existing* Soliplex stack. The shared dependency for
 # skill projects that wire rooms / edit `installation.yaml` (see README.md).
+# The `soliplex_config` module additionally queries a *running* stack via
+# Docker, and installs a `soliplex-config` script.
 #
 # Dependency groups (https://docs.astral.sh/uv/concepts/dependencies):
 #   - dev:  test + lint tooling (`uv run pytest`, etc.)
@@ -20,7 +22,13 @@ requires-python = ">=3.12"
 authors = [{ name = "Soliplex" }]
 keywords = ["soliplex", "rooms", "installation", "stack", "configuration"]
 
-dependencies = []
+# PyYAML backs the `soliplex_config` module (it parses the YAML emitted by
+# `soliplex-cli config`).
+dependencies = ["pyyaml"]
+
+# `run` wraps `main` with user-facing error handling.
+[project.scripts]
+soliplex-config = "soliplex_plumber.soliplex_config:run"
 
 [project.urls]
 Homepage = "https://soliplex.github.io/soliplex-plumber/"
