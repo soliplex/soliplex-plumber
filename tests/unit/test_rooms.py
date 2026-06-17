@@ -1,12 +1,7 @@
-"""Unit tests for the generic ``soliplex_plumber.rooms`` core (offline).
+"""Unit tests for the ``soliplex_plumber.rooms`` install core (offline).
 
-It ships as an installed package, so it is imported directly (no
-importlib-by-path). Tests are hermetic: everything is routed through
-``tmp_path`` -- pure filesystem, no Docker/network.
-
-Each test is laid out in three blank-line-separated phases -- setup, then the
-single call under test (the "act"), then the assertions -- and performs that
-act exactly once (cases that would repeat it are parametrized or split).
+Hermetic: everything is routed through ``tmp_path`` -- pure filesystem, no
+Docker/network. AAA layout, single act per test.
 """
 
 from __future__ import annotations
@@ -15,39 +10,90 @@ import pytest
 
 from soliplex_plumber import rooms
 
-_INSTALLATION = (
-    'name: "demo"\n'
-    "\n"
-    "# rooms loaded by this install\n"
-    "room_paths:\n"
-    '  - "./rooms/chat"\n'
-    "\n"
-    "secrets:\n"
-    "  - foo\n"
-)
+
+def _just_id_yaml(id_):
+    return f'id: "{id_}"'
+
+
+def _just_name_yaml(name):
+    return f'name: "{name}"'
+
+
+X_ID_YAML = _just_id_yaml("x")
+DEMO_NAME_YAML = _just_name_yaml("demo")
+STALE_ID_YAML = _just_id_yaml("stale")
+FRESH_ID_YAML = _just_id_yaml("fresh")
+
+# A stack whose room_paths enumerates a single room (no './rooms' container).
+_INSTALLATION_YAML = """\
+name: "demo"
+
+# rooms loaded by this install
+room_paths:
+  - "./rooms/chat"
+
+secrets:
+  - foo
+"""
+
+# Path list contains only explicit valueless entry (YAML -> [None])
+ROOM_PATHS_DISABLED_YAML = """\
+room_paths:
+  -
+"""
+
+ROOM_PATHS_EXPLICIT_DEFAULT = """\
+room_paths:
+  - "./rooms"
+"""
 
 
 def _make_stack(
-    tmp_path, *, compose=True, installation=True, inst_text=_INSTALLATION
+    tmp_path, *, compose=True, installation=True, inst_text=_INSTALLATION_YAML
 ):
     """A stack directory with the bits ``resolve_project`` checks for."""
     project = tmp_path / "stack"
     (project / "backend" / "environment").mkdir(parents=True, exist_ok=True)
+
     if compose:
-        (project / "docker-compose.yml").write_text("services: {}\n")
+        _write_text(project / "docker-compose.yml", "services: {}")
+
     if installation:
-        (project / "backend" / "environment" / "installation.yaml").write_text(
-            inst_text
+        _write_text(
+            project / "backend" / "environment" / "installation.yaml",
+            inst_text.rstrip(),
         )
+
     return project
 
 
-def _room_dir(project, room_id="handbook"):
-    return project / "backend" / "environment" / "rooms" / room_id
+def _env(project):
+    return project / "backend" / "environment"
 
 
 def _installation(project):
-    return project / "backend" / "environment" / "installation.yaml"
+    return _env(project) / "installation.yaml"
+
+
+def _room_dir(project, room_id="handbook", parent="./rooms"):
+    return _env(project) / parent / room_id
+
+
+def _write_text(path, content):
+    path.write_text(f"{content}\n")
+
+
+def _read_text(path):
+    return path.read_text().rstrip()
+
+
+def _src_room(tmp_path, *, id="src", prompt="Hi."):
+    """A source room template dir (room_config.yaml + prompt.txt) to copy."""
+    src = tmp_path / "template"
+    src.mkdir()
+    _write_text(src / "room_config.yaml", _just_id_yaml(id))
+    _write_text(src / "prompt.txt", f"{prompt}")
+    return src
 
 
 # --------------------------------------------------------------------------
@@ -65,43 +111,7 @@ def test_validate_room_id_rejects(room_id):
 
 
 # --------------------------------------------------------------------------
-# add_room_path
-# --------------------------------------------------------------------------
-def test_add_room_path_added_after_anchor():
-    new, action = rooms.add_room_path(_INSTALLATION, "handbook")
-
-    assert action == rooms.ADDED
-    assert "# rooms loaded by this install" in new
-    lines = new.splitlines()
-    anchor = lines.index("room_paths:")
-    assert lines[anchor + 1] == '  - "./rooms/handbook"'
-
-
-def test_add_room_path_covered_by_rooms_parent():
-    text = 'room_paths:\n  - "./rooms"\n'
-
-    new, action = rooms.add_room_path(text, "handbook")
-
-    assert action == rooms.COVERED
-    assert new == text
-
-
-def test_add_room_path_unchanged_when_present():
-    text = _INSTALLATION.replace('"./rooms/chat"', '"./rooms/handbook"')
-
-    new, action = rooms.add_room_path(text, "handbook")
-
-    assert action == rooms.UNCHANGED
-    assert new == text
-
-
-def test_add_room_path_no_anchor():
-    with pytest.raises(rooms.AddRoomError, match="room_paths"):
-        rooms.add_room_path("name: x\n", "handbook")
-
-
-# --------------------------------------------------------------------------
-# resolve_project
+# resolve_project / resolve_package_name
 # --------------------------------------------------------------------------
 def test_resolve_project_ok(tmp_path):
     project = _make_stack(tmp_path)
@@ -125,9 +135,6 @@ def test_resolve_project_not_a_stack(tmp_path):
         rooms.resolve_project(str(project))
 
 
-# --------------------------------------------------------------------------
-# resolve_package_name
-# --------------------------------------------------------------------------
 def test_resolve_package_name_override(tmp_path):
     project = _make_stack(tmp_path)
 
@@ -139,9 +146,7 @@ def test_resolve_package_name_override(tmp_path):
 def test_resolve_package_name_from_src(tmp_path):
     project = _make_stack(tmp_path)
     (project / "src" / "mypkg").mkdir(parents=True)
-    (project / "src" / "mypkg" / "tools.py").write_text(
-        "def greeting(): ...\n"
-    )
+    _write_text(project / "src" / "mypkg" / "tools.py", "def greeting(): ...")
     (project / "src" / "notpkg").mkdir()  # excluded: no tools.py
     (project / "src" / "stray.txt").write_text("x")  # excluded: not a dir
 
@@ -168,34 +173,158 @@ def test_resolve_package_name_no_src(tmp_path):
 
 
 # --------------------------------------------------------------------------
-# install_room
+# room_parent_candidates
 # --------------------------------------------------------------------------
-def test_room_install_is_backward_compat_alias():
-    assert rooms.RoomInstall is rooms.RoomInstalled
+def test_room_parent_candidates_absent_defaults_to_rooms(tmp_path):
+    project = _make_stack(tmp_path, inst_text=DEMO_NAME_YAML)
+
+    result = rooms.room_parent_candidates(project)
+
+    assert result == ["./rooms"]
 
 
-def test_install_room_writes_and_adds_path(tmp_path):
-    project = _make_stack(tmp_path)
+def test_room_parent_candidates_returns_only_containers(tmp_path):
+    inst = """\
+room_paths:
+  # pick a parent
+  - "./custom"
+  - "./rooms/chat"
+"""
+    project = _make_stack(tmp_path, inst_text=inst)
+    chat = _env(project) / "rooms" / "chat"
+    chat.mkdir(parents=True)
+    _write_text(chat / "room_config.yaml", "id: chat")  # a single room
+
+    result = rooms.room_parent_candidates(project)
+
+    assert result == ["./custom"]  # the single-room entry is excluded
+
+
+def test_room_parent_candidates_empty_when_rooms_disabled(tmp_path):
+    project = _make_stack(tmp_path, inst_text=ROOM_PATHS_DISABLED_YAML)
+
+    result = rooms.room_parent_candidates(project)
+
+    assert result == []
+
+
+# --------------------------------------------------------------------------
+# install_room -- room_paths decision table
+# --------------------------------------------------------------------------
+def test_install_room_added_splices_individual_entry(tmp_path):
+    project = _make_stack(tmp_path)  # lists './rooms/chat', no container
+    handbook_id_yaml = _just_id_yaml("handbook")
 
     installed = rooms.install_room(
-        project, "handbook", config_text='id: "handbook"\n'
+        project,
+        "handbook",
+        config_text=handbook_id_yaml,
+        parent_path="./rooms",
     )
 
     assert installed.path_action == rooms.ADDED
-    assert installed.config_path.read_text() == 'id: "handbook"\n'
-    assert not (installed.config_path.parent / "prompt.txt").exists()
-    assert '"./rooms/handbook"' in _installation(project).read_text()
+    assert _read_text(installed.config_path) == handbook_id_yaml
+    lines = _installation(project).read_text().splitlines()
+    assert '  - "./rooms/handbook"' in lines
+    assert '  - "./rooms/chat"' in lines  # the enumerated room is untouched
+
+
+def test_install_room_into_explicitly_disabled_rooms(tmp_path):
+    project = _make_stack(tmp_path, inst_text=ROOM_PATHS_DISABLED_YAML)
+
+    installed = rooms.install_room(
+        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+    )
+
+    assert installed.path_action == rooms.ADDED
+    assert installed.config_path.read_text() == X_ID_YAML
+    assert (
+        _installation(project).read_text()
+        == """\
+room_paths:
+  - "./rooms/handbook"
+  -
+"""
+    )
+
+
+def test_install_room_unchanged_when_entry_listed(tmp_path):
+    inst = _INSTALLATION_YAML.replace('"./rooms/chat"', '"./rooms/handbook"')
+    project = _make_stack(tmp_path, inst_text=inst)
+    before = _installation(project).read_text()
+
+    installed = rooms.install_room(
+        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+    )
+
+    assert installed.path_action == rooms.UNCHANGED
+    assert installed.config_path.is_file()
+    assert _installation(project).read_text() == before
+
+
+def test_install_room_covered_by_container(tmp_path):
+    project = _make_stack(tmp_path, inst_text=ROOM_PATHS_EXPLICIT_DEFAULT)
+    before = _installation(project).read_text()
+
+    installed = rooms.install_room(
+        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+    )
+
+    assert installed.path_action == rooms.COVERED
+    assert installed.config_path.is_file()
+    assert _installation(project).read_text() == before
+
+
+def test_install_room_covered_by_absent_default(tmp_path):
+    project = _make_stack(tmp_path, inst_text=DEMO_NAME_YAML)
+    before = _installation(project).read_text()
+
+    installed = rooms.install_room(
+        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+    )
+
+    assert installed.path_action == rooms.COVERED
+    assert installed.config_path.is_file()
+    assert _installation(project).read_text() == before
+
+
+def test_install_room_materializes_default_for_other_parent(tmp_path):
+    project = _make_stack(tmp_path, inst_text=DEMO_NAME_YAML)
+
+    installed = rooms.install_room(
+        project, "handbook", config_text=X_ID_YAML, parent_path="./custom"
+    )
+
+    assert installed.path_action == rooms.ADDED
+    text = _installation(project).read_text()
+    assert (
+        """\
+room_paths:
+  - "./rooms"
+  - "./custom/handbook"
+"""
+        in text
+    )
+    assert installed.config_path == (
+        _room_dir(project, parent="./custom") / "room_config.yaml"
+    )
+    assert installed.config_path.read_text() == X_ID_YAML
 
 
 def test_install_room_writes_prompt_file(tmp_path):
     project = _make_stack(tmp_path)
+    qa_id_yaml = _just_id_yaml("qa")
 
     installed = rooms.install_room(
-        project, "qa", config_text="id: qa\n", prompt_text="Be helpful.\n"
+        project,
+        "qa",
+        config_text=qa_id_yaml,
+        prompt_text="Be helpful.",
+        parent_path="./rooms",
     )
 
-    assert (installed.config_path.parent / "prompt.txt").read_text() == (
-        "Be helpful.\n"
+    assert _read_text(installed.config_path.parent / "prompt.txt") == (
+        "Be helpful."
     )
 
 
@@ -204,7 +333,11 @@ def test_install_room_dry_run_writes_nothing(tmp_path):
     before = _installation(project).read_text()
 
     installed = rooms.install_room(
-        project, "handbook", config_text="id: x\n", dry_run=True
+        project,
+        "handbook",
+        config_text=X_ID_YAML,
+        parent_path="./rooms",
+        dry_run=True,
     )
 
     assert installed.path_action == rooms.ADDED
@@ -217,34 +350,73 @@ def test_install_room_exists_without_force(tmp_path):
     _room_dir(project).mkdir(parents=True)
 
     with pytest.raises(rooms.AddRoomError, match="already exists"):
-        rooms.install_room(project, "handbook", config_text="id: x\n")
+        rooms.install_room(
+            project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+        )
 
 
-def test_install_room_covered_leaves_installation_untouched(tmp_path):
-    project = _make_stack(tmp_path, inst_text='room_paths:\n  - "./rooms"\n')
-    inst = _installation(project)
-    before = inst.read_text()
-
-    installed = rooms.install_room(project, "handbook", config_text="id: x\n")
-
-    assert installed.path_action == rooms.COVERED
-    assert installed.config_path.is_file()
-    assert inst.read_text() == before
-
-
-def test_install_room_force_overwrites_path_unchanged(tmp_path):
-    inst_text = _INSTALLATION.replace('"./rooms/chat"', '"./rooms/handbook"')
-    project = _make_stack(tmp_path, inst_text=inst_text)
+def test_install_room_force_overwrites(tmp_path):
+    project = _make_stack(tmp_path)
     room = _room_dir(project)
     room.mkdir(parents=True)
-    (room / "room_config.yaml").write_text("id: stale\n")
-    inst = _installation(project)
-    before = inst.read_text()
+    _write_text(room / "room_config.yaml", STALE_ID_YAML)
 
     installed = rooms.install_room(
-        project, "handbook", config_text='id: "handbook"\n', force=True
+        project,
+        "handbook",
+        config_text=FRESH_ID_YAML,
+        parent_path="./rooms",
+        force=True,
     )
 
-    assert installed.path_action == rooms.UNCHANGED
-    assert inst.read_text() == before
-    assert (room / "room_config.yaml").read_text() == 'id: "handbook"\n'
+    assert _read_text(room / "room_config.yaml") == FRESH_ID_YAML
+    assert installed.path_action == rooms.ADDED
+
+
+def test_install_room_rejects_parent_that_is_a_room(tmp_path):
+    project = _make_stack(tmp_path)
+    rooms_dir = _env(project) / "rooms"
+    rooms_dir.mkdir(parents=True)
+    rooms_id_yaml = _just_id_yaml("rooms")
+    # ./rooms is a room
+    _write_text(rooms_dir / "room_config.yaml", rooms_id_yaml)
+
+    with pytest.raises(rooms.AddRoomError, match="itself a room"):
+        rooms.install_room(
+            project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+        )
+
+
+# --------------------------------------------------------------------------
+# install_room_from
+# --------------------------------------------------------------------------
+def test_room_install_is_backward_compat_alias():
+    assert rooms.RoomInstall is rooms.RoomInstalled
+
+
+def test_install_room_from_copies_tree(tmp_path):
+    project = _make_stack(tmp_path)
+    src = _src_room(tmp_path)
+
+    installed = rooms.install_room_from(
+        project, "handbook", src, parent_path="./rooms"
+    )
+
+    assert installed.path_action == rooms.ADDED
+    assert _read_text(installed.config_path) == 'id: "src"'
+    assert _read_text(installed.config_path.parent / "prompt.txt") == "Hi."
+
+
+def test_install_room_from_force_overwrites(tmp_path):
+    project = _make_stack(tmp_path)
+    src = _src_room(tmp_path, id="fresh")
+    room = _room_dir(project)
+    room.mkdir(parents=True)
+    _write_text(room / "room_config.yaml", STALE_ID_YAML)
+
+    installed = rooms.install_room_from(
+        project, "handbook", src, parent_path="./rooms", force=True
+    )
+
+    assert installed.path_action == rooms.ADDED
+    assert _read_text(room / "room_config.yaml") == FRESH_ID_YAML

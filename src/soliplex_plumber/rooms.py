@@ -1,24 +1,25 @@
-"""Generic, template-agnostic logic for adding a room to a Soliplex stack.
+"""Install a room into a Soliplex stack, wiring its ``room_paths`` entry.
 
-This is the shared core behind two consumers: the ``soliplex-template`` skill's
-bundled ``add_room.py`` (a PEP 723 shim that owns the ``.mako`` templates and
-the CLI) and the ``soliplex-concierge`` installer. Each delegates the
-stack-level work here so the room-wiring rules live in one place. Any consumer
-can ``from soliplex_plumber.rooms import ...``.
-
-It works on a *rendered* room config (text the caller produced however it likes
--- a template, an existing room's config, or built by hand) plus the stack's
-``installation.yaml``, which it edits line-based (comment-preserving):
+The shared core behind the ``soliplex-template`` skill's ``add_room.py`` and
+the ``soliplex-concierge`` installer. A room is written under an explicit
+``parent_path`` (relative to the installation config, e.g. ``"./rooms"``) and
+``room_paths`` is edited line-based (comment-preserving) so the room is
+discovered. The governing rule: **installing a room never disables another** --
+edits are append-only and the ``./rooms`` default is materialized before any
+non-default parent is added.
 
 - ``resolve_project`` / ``resolve_package_name`` -- locate + introspect it.
 - ``validate_room_id`` -- the room-id / path-segment rule.
-- ``add_room_path`` -- ensure ``room_paths`` loads the room (``added`` /
-  ``COVERED`` by a ``./rooms`` parent entry / ``unchanged`` when already
-  listed), preserving comments and layout.
-- ``install_room`` -- write the room dir + config (+ optional prompt file) and
-  apply the ``room_paths`` edit; honors dry-run and force.
+- ``room_parent_candidates`` -- the container entries of ``room_paths`` a
+  caller can offer as a ``parent_path`` (or ``["./rooms"]`` when it is absent).
+- ``install_room`` -- write the room dir from a rendered ``config_text``
+  (+ optional prompt) under ``parent_path``; honor dry-run and force.
+- ``install_room_from`` -- the same, but *copy* an existing room directory tree
+  (multi-file templates); the caller patches the copied files afterward.
 
-Pure filesystem work -- no Docker, no running backend, stdlib only.
+Section scanning + the generic installation.yaml primitives live in the sibling
+:mod:`soliplex_plumber.installation`; the section catalog in
+:mod:`soliplex_plumber.sections`. Pure filesystem work -- stdlib only.
 """
 
 from __future__ import annotations
@@ -26,6 +27,10 @@ from __future__ import annotations
 import dataclasses
 import pathlib
 import re
+import shutil
+
+from soliplex_plumber import installation
+from soliplex_plumber import sections
 
 # A room id usable as a path segment and a YAML id: no '/', no '..', no
 # leading dot (mirrors rag_db.py's DB_NAME_RE).
@@ -38,21 +43,21 @@ DEFAULT_PACKAGE_NAME = "your_package"
 # points its system_prompt at this file (the 'search' demo room uses the form).
 PROMPT_FILE_NAME = "prompt.txt"
 
-# Stack markers: the files that mark a directory as a generated stack.
-COMPOSE_FILE = "docker-compose.yml"
-ENVIRONMENT_DIR = pathlib.PurePosixPath("backend", "environment")
-INSTALLATION_FILE = ENVIRONMENT_DIR / "installation.yaml"
-ROOMS_DIR = ENVIRONMENT_DIR / "rooms"
+# Stack-structure constants + the action strings live canonically in
+# 'sections'/'installation'; re-exported here so existing consumers keep
+# importing them by their historical names.
+COMPOSE_FILE = sections.COMPOSE_FILE
+ENVIRONMENT_DIR = sections.ENVIRONMENT_DIR
+INSTALLATION_FILE = sections.INSTALLATION_FILE
+ROOMS_DIR = sections.ROOMS_DIR
 
-# room_paths splice: the anchor line and the entry-already-present probe.
-_ROOM_PATHS_RE = re.compile(r"^room_paths:\s*$")
+ADDED = installation.TargetAction.ADDED
+UNCHANGED = installation.TargetAction.UNCHANGED
+COVERED = installation.TargetAction.COVERED
 
-ADDED = "added"
-UNCHANGED = "unchanged"
-# room_paths may point at the rooms parent directory to auto-discover every
-# room beneath it; when it does, a new room needs no room_paths entry.
-ROOMS_PARENT_ENTRY = "./rooms"
-COVERED = f'covered by "{ROOMS_PARENT_ENTRY}"'
+# The default room-discovery container (a ``room_paths`` entry pointing here
+# auto-discovers every room beneath it).
+ROOMS_PARENT_ENTRY = sections.ROOM_PATHS.discovery_default
 
 
 class AddRoomError(Exception):
@@ -88,10 +93,10 @@ class AddRoomError(Exception):
         return cls(f"{path} already exists (use force to overwrite it)")
 
     @classmethod
-    def no_room_paths(cls, path):
+    def parent_is_room(cls, path):
         return cls(
-            f"no 'room_paths:' block in {path} to extend "
-            "(unexpected installation.yaml shape)"
+            f"parent_path {path} is itself a room (has a room_config.yaml); "
+            "pass a container directory to install rooms into"
         )
 
 
@@ -131,40 +136,90 @@ def resolve_package_name(project: pathlib.Path, override: str | None) -> str:
     return DEFAULT_PACKAGE_NAME
 
 
-def add_room_path(text: str, room_id: str) -> tuple[str, str]:
-    """Ensure ``room_paths`` loads ``rooms/<room_id>``; return (text, action).
+_ENTRY_RE = re.compile(r'-\s*["\']?([^"\'\s]+)["\']?\s*$')
 
-    Action is ``"unchanged"`` when the explicit entry is already listed,
-    ``COVERED`` when a ``./rooms`` entry already auto-discovers every room
-    beneath it (so no entry is needed), or ``"added"`` when the
-    ``- "./rooms/<id>"`` entry is spliced in. The edit is line-based, so
-    comments and unrelated layout are preserved. Raises ``AddRoomError`` when
-    the file has no top-level ``room_paths:`` block.
+
+def _norm_path(path_str: str) -> str:
+    """Normalize a room_paths value so './rooms' == 'rooms' == './rooms/'."""
+    return str(pathlib.PurePosixPath(path_str))
+
+
+def _listed_room_paths(lines: list[str], lo: int, hi: int) -> set[str]:
+    """Normalized path values of (non-comment) room_paths items in range."""
+    listed = set()
+    for i in range(lo, hi):
+        if installation.is_item(lines[i]):
+            match = _ENTRY_RE.search(lines[i])
+            if match:
+                listed.add(_norm_path(match.group(1)))
+    return listed
+
+
+def room_parent_candidates(project: pathlib.Path) -> list[str]:
+    """The ``room_paths`` entries that are *containers* (not single rooms).
+
+    A caller offers these as a ``parent_path`` to install into. An entry is a
+    container when it has no ``room_config.yaml`` of its own (Soliplex then
+    discovers its immediate ``*/room_config.yaml`` subdirs as rooms). When
+    ``room_paths`` is absent the backend default ``["./rooms"]`` applies, so
+    the sole candidate is ``"./rooms"``.
     """
-    entry = f"{ROOMS_PARENT_ENTRY}/{room_id}"
-    probe = re.compile(r'-\s*["\']?' + re.escape(entry) + r'["\']?\s*$')
-    parent_probe = re.compile(
-        r'-\s*["\']?' + re.escape(ROOMS_PARENT_ENTRY) + r'/?["\']?\s*$'
-    )
+    env = project / ENVIRONMENT_DIR
+    lines = (project / INSTALLATION_FILE).read_text().splitlines(keepends=True)
+    span = installation.section_span(lines, sections.ROOM_PATHS.key)
+    if span is None:
+        return [ROOMS_PARENT_ENTRY]
+    start, end = span
+    candidates = []
+    for i in range(start + 1, end):
+        if not installation.is_item(lines[i]):
+            continue
+        match = _ENTRY_RE.search(lines[i])
+        if match and not (env / match.group(1) / "room_config.yaml").is_file():
+            candidates.append(match.group(1))
+    return candidates
+
+
+def _ensure_room_path(
+    text: str, parent_path: str, room_id: str
+) -> tuple[str, str]:
+    """Ensure ``room_paths`` discovers ``{parent_path}/{room_id}``.
+
+    Append-only and idempotent: the explicit entry already listed ⇒
+    ``UNCHANGED``; ``parent_path`` listed as a container ⇒ ``COVERED``; the
+    ``./rooms`` default covering it (absent section) ⇒ ``COVERED``; otherwise
+    splice the *individual* room entry ⇒ ``ADDED`` (materializing the
+    ``./rooms`` default first when the section is absent, so nothing already
+    enabled is lost).
+    """
+    entry = f"{parent_path}/{room_id}"
+    default = ROOMS_PARENT_ENTRY
     lines = text.splitlines(keepends=True)
-    if any(probe.search(line) for line in lines):
-        return text, UNCHANGED
-    if any(parent_probe.search(line) for line in lines):
-        return text, COVERED
-    idx = next(
-        (i for i, line in enumerate(lines) if _ROOM_PATHS_RE.match(line)),
-        None,
-    )
-    if idx is None:
-        raise AddRoomError.no_room_paths(INSTALLATION_FILE)
-    lines.insert(idx + 1, f'  - "{entry}"\n')
-    return "".join(lines), ADDED
+    span = installation.section_span(lines, sections.ROOM_PATHS.key)
+    if span is None:
+        if _norm_path(parent_path) == _norm_path(default):
+            return text, installation.TargetAction.COVERED
+        block = [f'  - "{default}"\n', f'  - "{entry}"\n']
+        return (
+            installation.append_section(text, sections.ROOM_PATHS.key, block),
+            installation.TargetAction.ADDED,
+        )
+    start, end = span
+    # Compare normalized paths so './rooms', 'rooms', and './rooms/' (which
+    # Soliplex resolves identically) all count as the same entry / container.
+    listed = _listed_room_paths(lines, start + 1, end)
+    if _norm_path(entry) in listed:
+        return text, installation.TargetAction.UNCHANGED
+    if _norm_path(parent_path) in listed:
+        return text, installation.TargetAction.COVERED
+    lines[start + 1 : start + 1] = [f'  - "{entry}"\n']
+    return "".join(lines), installation.TargetAction.ADDED
 
 
 @dataclasses.dataclass(frozen=True)
 class RoomInstalled:
-    """The outcome of ``install_room``: where the config went + the room_paths
-    action (``added`` / ``COVERED`` / ``unchanged``)."""
+    """Outcome of ``install_room`` / ``install_room_from``: where the config
+    went + the ``room_paths`` action (``added``/``covered``/``unchanged``)."""
 
     config_path: pathlib.Path
     path_action: str
@@ -174,40 +229,101 @@ class RoomInstalled:
 RoomInstall = RoomInstalled
 
 
+def _install_room(
+    project: pathlib.Path,
+    room_id: str,
+    *,
+    parent_path: str,
+    write_contents,
+    force: bool,
+    dry_run: bool,
+) -> RoomInstalled:
+    """Shared skeleton: place the room under ``parent_path`` and wire
+    ``room_paths``. ``write_contents(room_dir)`` populates the dir (unless
+    ``dry_run``). Raises ``AddRoomError`` when ``parent_path`` is itself a
+    room, or when the room dir already exists and ``force`` is false."""
+    env = project / ENVIRONMENT_DIR
+    if (env / parent_path / "room_config.yaml").is_file():
+        raise AddRoomError.parent_is_room(env / parent_path)
+    room_dir = env / parent_path / room_id
+    config_path = room_dir / "room_config.yaml"
+    if room_dir.exists() and not force:
+        raise AddRoomError.room_exists(room_dir)
+
+    installation_path = project / INSTALLATION_FILE
+    new_text, path_action = _ensure_room_path(
+        installation_path.read_text(), parent_path, room_id
+    )
+
+    if not dry_run:
+        write_contents(room_dir)
+        if path_action == installation.TargetAction.ADDED:
+            installation_path.write_text(new_text)
+
+    return RoomInstalled(config_path=config_path, path_action=path_action)
+
+
 def install_room(
     project: pathlib.Path,
     room_id: str,
     *,
     config_text: str,
     prompt_text: str | None = None,
+    parent_path: str,
     force: bool = False,
     dry_run: bool = False,
 ) -> RoomInstalled:
-    """Install a rendered room into ``project``; return a ``RoomInstalled``.
+    """Install a rendered room under ``parent_path``; return ``RoomInstalled``.
 
-    Writes ``rooms/<room_id>/room_config.yaml`` (and ``prompt.txt`` when
-    ``prompt_text`` is given), and ensures ``room_paths`` loads it. With
-    ``dry_run`` it computes the outcome but writes nothing. Raises
-    ``AddRoomError`` when the room directory already exists and ``force`` is
-    false. ``config_text`` is template-agnostic -- any caller-produced room
-    config.
+    Writes ``<parent_path>/<room_id>/room_config.yaml`` (and ``prompt.txt``
+    when ``prompt_text`` is given), and ensures ``room_paths`` discovers it.
+    With ``dry_run`` it computes the outcome but writes nothing.
+    ``config_text`` is template-agnostic -- any caller-produced room config.
     """
-    room_dir = project / ROOMS_DIR / room_id
-    config_path = room_dir / "room_config.yaml"
-    if room_dir.exists() and not force:
-        raise AddRoomError.room_exists(room_dir)
 
-    installation = project / INSTALLATION_FILE
-    new_installation, path_action = add_room_path(
-        installation.read_text(), room_id
-    )
-
-    if not dry_run:
+    def _write(room_dir: pathlib.Path) -> None:
         room_dir.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(config_text)
+        (room_dir / "room_config.yaml").write_text(config_text)
         if prompt_text is not None:
             (room_dir / PROMPT_FILE_NAME).write_text(prompt_text)
-        if path_action == ADDED:
-            installation.write_text(new_installation)
 
-    return RoomInstalled(config_path=config_path, path_action=path_action)
+    return _install_room(
+        project,
+        room_id,
+        parent_path=parent_path,
+        write_contents=_write,
+        force=force,
+        dry_run=dry_run,
+    )
+
+
+def install_room_from(
+    project: pathlib.Path,
+    room_id: str,
+    src_dir: pathlib.Path,
+    *,
+    parent_path: str,
+    force: bool = False,
+    dry_run: bool = False,
+) -> RoomInstalled:
+    """Install a room by *copying* the ``src_dir`` template tree in.
+
+    Copies ``src_dir`` to ``<parent_path>/<room_id>/`` (handling multi-file
+    room templates -- e.g. ``room_config.yaml`` + ``prompt.txt``) and ensures
+    ``room_paths`` discovers it. Unlike ``install_room`` (which writes a
+    rendered config string), the caller does any post-copy patching of the
+    written files itself, using the returned ``config_path``. With ``dry_run``
+    it computes the outcome but writes nothing.
+    """
+
+    def _write(room_dir: pathlib.Path) -> None:
+        shutil.copytree(src_dir, room_dir, dirs_exist_ok=True)
+
+    return _install_room(
+        project,
+        room_id,
+        parent_path=parent_path,
+        write_contents=_write,
+        force=force,
+        dry_run=dry_run,
+    )

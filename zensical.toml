@@ -27,9 +27,7 @@ dev_addr = "127.0.0.1:8005"
 # Reference: https://zensical.org/docs/setup/navigation/
 nav = [
     { "Home" = "index.md" },
-    { "API reference" = [
-        "reference/api.md",
-    ] },
+    { "API reference" = "reference/api.md" },
 ]
 
 [project.theme]
