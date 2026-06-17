@@ -89,15 +89,17 @@ class AddRoomError(Exception):
         )
 
     @classmethod
-    def room_exists(cls, path):
-        return cls(f"{path} already exists (use force to overwrite it)")
-
-    @classmethod
     def parent_is_room(cls, path):
         return cls(
             f"parent_path {path} is itself a room (has a room_config.yaml); "
             "pass a container directory to install rooms into"
         )
+
+
+class RoomExists(AddRoomError):
+    def __init__(self, path):
+        self.path = path
+        super().__init__(f"{path} already exists (use force to overwrite it)")
 
 
 def validate_room_id(room_id: str) -> None:
@@ -248,7 +250,7 @@ def _install_room(
     room_dir = env / parent_path / room_id
     config_path = room_dir / "room_config.yaml"
     if room_dir.exists() and not force:
-        raise AddRoomError.room_exists(room_dir)
+        raise RoomExists(room_dir)
 
     installation_path = project / INSTALLATION_FILE
     new_text, path_action = _ensure_room_path(
