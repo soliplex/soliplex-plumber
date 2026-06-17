@@ -12,7 +12,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "soliplex-plumber"
-version = "0.2"
+version = "0.2.1"
 description = "Read and modify the configuration of an existing Soliplex stack."
 readme = "README.md"
 license = "MIT"
