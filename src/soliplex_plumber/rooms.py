@@ -61,36 +61,40 @@ ROOMS_PARENT_ENTRY = sections.ROOM_PATHS.discovery_default
 
 
 class AddRoomError(Exception):
-    """A user-facing error (printed without a traceback).
+    """Base class for user-facing errors."""
 
-    Message construction lives in these classmethod factories so call sites
-    read ``raise AddRoomError.<reason>(...)`` with no inline message string.
-    """
 
-    @classmethod
-    def compose_not_found(cls, path):
-        return cls(
+class ComposeNotFound(AddRoomError):
+    def __init__(self, path):
+        self.path = path
+        super().__init__(
             f"no {COMPOSE_FILE} at {path} "
             "(run with --project-dir pointing at the stack directory)"
         )
 
-    @classmethod
-    def not_a_stack(cls, path):
-        return cls(
+
+class NotAStack(AddRoomError):
+    def __init__(self, path):
+        self.path = path
+        super().__init__(
             f"{path} is not a generated Soliplex stack: missing "
             f"'{INSTALLATION_FILE}'"
         )
 
-    @classmethod
-    def bad_room_id(cls, room_id):
-        return cls(
+
+class BadRoomId(AddRoomError):
+    def __init__(self, room_id):
+        self.room_id = room_id
+        super().__init__(
             f"room id {room_id!r} must match {ROOM_ID_RE.pattern} "
             "(letters, digits, '.', '_', '-'; no leading dot)"
         )
 
-    @classmethod
-    def parent_is_room(cls, path):
-        return cls(
+
+class ParentIsRoom(AddRoomError):
+    def __init__(self, path):
+        self.path = path
+        super().__init__(
             f"parent_path {path} is itself a room (has a room_config.yaml); "
             "pass a container directory to install rooms into"
         )
@@ -104,16 +108,16 @@ class RoomExists(AddRoomError):
 
 def validate_room_id(room_id: str) -> None:
     if not ROOM_ID_RE.match(room_id):
-        raise AddRoomError.bad_room_id(room_id)
+        raise BadRoomId(room_id)
 
 
 def resolve_project(project_dir: str) -> pathlib.Path:
     """Return the resolved stack root, or raise if it is not a stack."""
     project = pathlib.Path(project_dir).resolve()
     if not (project / COMPOSE_FILE).is_file():
-        raise AddRoomError.compose_not_found(project / COMPOSE_FILE)
+        raise ComposeNotFound(project / COMPOSE_FILE)
     if not (project / INSTALLATION_FILE).is_file():
-        raise AddRoomError.not_a_stack(project)
+        raise NotAStack(project)
     return project
 
 
@@ -246,7 +250,7 @@ def _install_room(
     room, or when the room dir already exists and ``force`` is false."""
     env = project / ENVIRONMENT_DIR
     if (env / parent_path / "room_config.yaml").is_file():
-        raise AddRoomError.parent_is_room(env / parent_path)
+        raise ParentIsRoom(env / parent_path)
     room_dir = env / parent_path / room_id
     config_path = room_dir / "room_config.yaml"
     if room_dir.exists() and not force:
