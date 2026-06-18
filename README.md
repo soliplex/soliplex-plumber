@@ -15,10 +15,14 @@ The core does pure filesystem work: no Docker, no running backend. The
   resolve and validate the stack root, infer its package, and ensure
   `installation.yaml`'s `room_paths` loads the room (editing line-based, so
   comments and layout are preserved).
+- **`stack`** — shared plumbing to run `soliplex-cli` against a stack in a
+  throwaway `docker compose run --rm` container (validate the stack, build the
+  argv, capture or stream output), optionally binding an alternative
+  installation tree to dry-run against. Needs Docker.
 - **`soliplex_config`** — query a *running* stack's resolved installation
   config via `soliplex-cli config` in a one-off backend container (`show` /
   `get` / `rooms` / `room`); installs the `soliplex-config` console script.
-  Needs Docker.
+  Builds on `stack`.
 
 ```python
 from soliplex_plumber import rooms

@@ -19,10 +19,14 @@ installer -- so the stack-wiring rules live in one place.
   `installation.yaml`'s `room_paths` loads the room (editing line-based, so
   comments and layout are preserved). See the
   [API reference](reference/api.md).
+- **`stack`** -- shared plumbing to run `soliplex-cli` against a stack in a
+  throwaway `docker compose run --rm` container (validate the stack, build the
+  argv, capture or stream output), optionally binding an alternative
+  installation tree to dry-run against. Needs Docker.
 - **`soliplex_config`** -- query a *running* stack's resolved installation
   config via `soliplex-cli config` in a one-off backend container (`show` /
   `get` / `rooms` / `room`); installs the `soliplex-config` console script.
-  Needs Docker.
+  Builds on `stack`.
 
 There is no re-exporting package `__init__`; client code imports the submodule
 and uses its members by dotted name:

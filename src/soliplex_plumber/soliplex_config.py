@@ -4,9 +4,8 @@ Unlike the rest of ``soliplex_plumber`` -- which does pure filesystem work on
 an *existing* stack -- this module talks to a *running* one.
 ``soliplex-cli config <installation>`` exports the *resolved* installation
 config as YAML, but ``soliplex-cli`` only exists inside the backend image, so
-this module runs it in a one-off backend container via
-``docker compose run --rm`` and parses the YAML output. It therefore needs
-Docker on ``PATH``.
+this module runs it in a one-off backend container (via the shared ``stack``
+module) and parses the YAML output. It therefore needs Docker on ``PATH``.
 
 The module installs a ``soliplex-config`` console script (``run`` wraps
 ``main`` with the user-facing error handling). It exposes the config at four
@@ -47,23 +46,13 @@ from __future__ import annotations
 
 import argparse
 import pathlib
-import shutil
 import subprocess
 import sys
 
 import yaml
 
-# The stack service that ships soliplex-cli, the binary's in-container path
-# (the compose command launches it by absolute path -- the venv is not on
-# PATH), and the installation path it serves. ``DEFAULT_HOST_ENVIRONMENT`` is
-# the host directory bind-mounted onto ``DEFAULT_INSTALLATION`` there.
-DEFAULT_SERVICE = "backend"
-DEFAULT_CLI = "/app/.venv/bin/soliplex-cli"
-DEFAULT_INSTALLATION = "/environment"
-DEFAULT_HOST_ENVIRONMENT = "backend/environment"
-# A wide terminal so rich (soliplex-cli's console) does not wrap long paths in
-# the captured, non-TTY output and corrupt the YAML.
-_WIDE_COLUMNS = "10000"
+from soliplex_plumber import stack
+
 # Fields lifted from each room_config.yaml into a `rooms` mapping, output key
 # (left) <- room_config.yaml key (right). ``room_id`` is required; the rest are
 # null when absent.
@@ -74,24 +63,13 @@ _ROOM_FIELDS = (
 )
 
 
-class SoliplexConfigError(Exception):
-    """A user-facing error (printed without a traceback)."""
+class SoliplexConfigError(stack.StackError):
+    """A user-facing ``config``-subcommand error (printed without a traceback).
 
-
-class DockerMissing(SoliplexConfigError):
-    def __init__(self):
-        super().__init__(
-            "docker not found on PATH (the Docker CLI is required)"
-        )
-
-
-class ComposeNotFound(SoliplexConfigError):
-    def __init__(self, path):
-        self.path = path
-        super().__init__(
-            f"no docker-compose.yml at {path} "
-            "(run from the stack directory or pass --project-dir)"
-        )
+    Subclasses ``stack.StackError`` so the ``soliplex-config`` entry point's
+    one handler catches both these and the shared stack errors (Docker /
+    compose).
+    """
 
 
 class NoRoomPaths(SoliplexConfigError):
@@ -118,42 +96,6 @@ class RoomNotFound(SoliplexConfigError):
             f"no room with id {room_id!r} among the loaded rooms "
             "(use 'rooms' to list them)"
         )
-
-
-def _require_docker() -> None:
-    if shutil.which("docker") is None:
-        raise DockerMissing()
-
-
-def resolve_project(project_dir: str) -> pathlib.Path:
-    project = pathlib.Path(project_dir).resolve()
-    compose = project / "docker-compose.yml"
-    if not compose.is_file():
-        raise ComposeNotFound(compose)
-    return project
-
-
-def run_config(
-    project: pathlib.Path, service: str, cli: str, installation: str
-) -> str:
-    """Run ``soliplex-cli config`` in a one-off backend container."""
-    cmd = [
-        "docker",
-        "compose",
-        "--project-directory",
-        str(project),
-        "run",
-        "--rm",
-        "--no-TTY",
-        "-e",
-        f"COLUMNS={_WIDE_COLUMNS}",
-        service,
-        cli,
-        "config",
-        installation,
-    ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return result.stdout
 
 
 def parse_config(stdout: str) -> dict:
@@ -277,7 +219,7 @@ def _resolve_room_configs(
     service: str,
     cli: str,
     installation: str,
-    host_environment: str,
+    host_environment: str | None,
 ) -> tuple[list[tuple[dict, pathlib.Path]], list[str]]:
     """Locate the loaded rooms' host ``room_config.yaml`` files.
 
@@ -286,11 +228,23 @@ def _resolve_room_configs(
     ``{room_id, name, description}`` and ``path`` its host config file. Room id
     conflicts resolve first-past-the-post, matching soliplex.
     """
-    config = parse_config(run_config(project, service, cli, installation))
+    result = stack.run_cli(
+        project,
+        ["config"],
+        service=service,
+        cli=cli,
+        installation=installation,
+        host_environment=host_environment,
+    )
+    config = parse_config(result.stdout)
     if "room_paths" not in config:
         raise NoRoomPaths()
 
-    host_env = (project / host_environment).resolve()
+    # Map container room paths (under ``installation``) back to host files.
+    # When --host-environment was not given, run_cli relied on the stack's own
+    # bind mount, whose host side is ``stack.DEFAULT_HOST_ENVIRONMENT``.
+    mount = host_environment or stack.DEFAULT_HOST_ENVIRONMENT
+    host_env = (project / mount).resolve()
     entries: list[tuple[dict, pathlib.Path]] = []
     seen: set[str] = set()
     unmapped: list[str] = []
@@ -312,7 +266,7 @@ def resolve_rooms(
     service: str,
     cli: str,
     installation: str,
-    host_environment: str,
+    host_environment: str | None,
 ) -> tuple[list[dict], list[str]]:
     """Collect the loaded rooms' ``{room_id, name, description}`` mappings.
 
@@ -326,22 +280,33 @@ def resolve_rooms(
 
 
 def do_show(args: argparse.Namespace) -> int:
-    _require_docker()
-    project = resolve_project(args.project_dir)
+    project = stack.resolve_project(args.project_dir)
 
-    stdout = run_config(project, args.service, args.cli, args.installation)
+    result = stack.run_cli(
+        project,
+        ["config"],
+        service=args.service,
+        cli=args.cli,
+        installation=args.installation,
+        host_environment=args.host_environment,
+    )
 
-    print(stdout, end="")
+    print(result.stdout, end="")
     return 0
 
 
 def do_get(args: argparse.Namespace) -> int:
-    _require_docker()
-    project = resolve_project(args.project_dir)
+    project = stack.resolve_project(args.project_dir)
 
-    config = parse_config(
-        run_config(project, args.service, args.cli, args.installation)
+    result = stack.run_cli(
+        project,
+        ["config"],
+        service=args.service,
+        cli=args.cli,
+        installation=args.installation,
+        host_environment=args.host_environment,
     )
+    config = parse_config(result.stdout)
     value = navigate(config, args.key)
 
     print(render_value(value, args.format))
@@ -349,8 +314,7 @@ def do_get(args: argparse.Namespace) -> int:
 
 
 def do_rooms(args: argparse.Namespace) -> int:
-    _require_docker()
-    project = resolve_project(args.project_dir)
+    project = stack.resolve_project(args.project_dir)
 
     rooms, unmapped = resolve_rooms(
         project,
@@ -371,8 +335,7 @@ def do_rooms(args: argparse.Namespace) -> int:
 
 
 def do_room(args: argparse.Namespace) -> int:
-    _require_docker()
-    project = resolve_project(args.project_dir)
+    project = stack.resolve_project(args.project_dir)
 
     entries, _ = _resolve_room_configs(
         project,
@@ -389,47 +352,6 @@ def do_room(args: argparse.Namespace) -> int:
     raise RoomNotFound(args.room_id)
 
 
-def _add_config_args(parser: argparse.ArgumentParser) -> None:
-    """Args shared by every subcommand: which stack/service/config to query."""
-    parser.add_argument(
-        "--project-dir",
-        default=".",
-        help="stack directory (default: current directory)",
-    )
-    parser.add_argument(
-        "--service",
-        default=DEFAULT_SERVICE,
-        help=(
-            "compose service running soliplex-cli "
-            f"(default: {DEFAULT_SERVICE})"
-        ),
-    )
-    parser.add_argument(
-        "--cli",
-        default=DEFAULT_CLI,
-        help=f"in-container soliplex-cli path (default: {DEFAULT_CLI})",
-    )
-    parser.add_argument(
-        "--installation",
-        default=DEFAULT_INSTALLATION,
-        help=(
-            f"in-container installation path (default: {DEFAULT_INSTALLATION})"
-        ),
-    )
-
-
-def _add_host_environment(parser: argparse.ArgumentParser) -> None:
-    """The extra arg the room-mapping subcommands (rooms/room) need."""
-    parser.add_argument(
-        "--host-environment",
-        default=DEFAULT_HOST_ENVIRONMENT,
-        help=(
-            "host dir bind-mounted onto --installation "
-            f"(default: {DEFAULT_HOST_ENVIRONMENT})"
-        ),
-    )
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Query a Soliplex stack's resolved installation config."
@@ -439,7 +361,7 @@ def build_parser() -> argparse.ArgumentParser:
     show = sub.add_parser(
         "show", help="print the whole resolved installation config"
     )
-    _add_config_args(show)
+    stack.add_arguments(show)
     show.set_defaults(func=do_show)
 
     get = sub.add_parser(
@@ -458,15 +380,14 @@ def build_parser() -> argparse.ArgumentParser:
             "yaml: dump any value as YAML"
         ),
     )
-    _add_config_args(get)
+    stack.add_arguments(get)
     get.set_defaults(func=do_get)
 
     rooms = sub.add_parser(
         "rooms",
         help="print a {room_id, name, description} mapping per loaded room",
     )
-    _add_config_args(rooms)
-    _add_host_environment(rooms)
+    stack.add_arguments(rooms)
     rooms.set_defaults(func=do_rooms)
 
     room = sub.add_parser(
@@ -475,8 +396,7 @@ def build_parser() -> argparse.ArgumentParser:
     room.add_argument(
         "room_id", help="the id of the room to print (see 'rooms')"
     )
-    _add_config_args(room)
-    _add_host_environment(room)
+    stack.add_arguments(room)
     room.set_defaults(func=do_room)
 
     return parser
@@ -494,13 +414,14 @@ def main(argv: list[str]) -> int:
 def run() -> int:
     """Console-script entry point: ``main`` plus user-facing error handling.
 
-    Backs the ``soliplex-config`` script -- a ``SoliplexConfigError`` or a
-    failed ``soliplex-cli`` invocation is printed without a traceback and
-    becomes exit code 2.
+    Backs the ``soliplex-config`` script -- a ``stack.StackError`` (Docker /
+    compose / the ``SoliplexConfigError`` subclasses) or a failed
+    ``soliplex-cli`` invocation is printed without a traceback and becomes exit
+    code 2.
     """
     try:
         return main(sys.argv[1:])
-    except SoliplexConfigError as exc:
+    except stack.StackError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     except subprocess.CalledProcessError as exc:

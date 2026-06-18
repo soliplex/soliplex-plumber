@@ -19,6 +19,7 @@ from unittest import mock
 import pytest
 
 from soliplex_plumber import soliplex_config
+from soliplex_plumber import stack
 
 
 # --------------------------------------------------------------------------
@@ -85,49 +86,18 @@ def _expected_run(project: pathlib.Path) -> mock._Call:
 # --------------------------------------------------------------------------
 @pytest.fixture
 def which(monkeypatch):
+    # soliplex_config's container plumbing lives in the shared ``stack``
+    # module, so the Docker/subprocess seams are patched there.
     w = mock.Mock(return_value="/usr/bin/docker")
-    monkeypatch.setattr(soliplex_config.shutil, "which", w)
+    monkeypatch.setattr(stack.shutil, "which", w)
     return w
 
 
 @pytest.fixture
 def run(monkeypatch):
     r = mock.Mock()
-    monkeypatch.setattr(soliplex_config.subprocess, "run", r)
+    monkeypatch.setattr(stack.subprocess, "run", r)
     return r
-
-
-# --------------------------------------------------------------------------
-# resolve_project
-# --------------------------------------------------------------------------
-def test_resolve_project_ok(tmp_path):
-    project = _make_project(tmp_path)
-
-    resolved = soliplex_config.resolve_project(str(project))
-
-    assert resolved == project.resolve()
-
-
-def test_resolve_project_no_compose(tmp_path):
-    project = _make_project(tmp_path, compose=False)
-
-    with pytest.raises(soliplex_config.ComposeNotFound):
-        soliplex_config.resolve_project(str(project))
-
-
-# --------------------------------------------------------------------------
-# run_config
-# --------------------------------------------------------------------------
-def test_run_config_builds_argv(tmp_path, run):
-    project = _make_project(tmp_path)
-    run.return_value.stdout = "room_paths: []\n"
-
-    out = soliplex_config.run_config(
-        project, "backend", "/app/.venv/bin/soliplex-cli", "/environment"
-    )
-
-    assert out == "room_paths: []\n"
-    assert run.call_args_list == [_expected_run(project)]
 
 
 # --------------------------------------------------------------------------
@@ -458,7 +428,7 @@ def test_rooms_docker_missing(tmp_path, which, run):
     which.return_value = None
     project = _make_project(tmp_path)
 
-    with pytest.raises(soliplex_config.DockerMissing):
+    with pytest.raises(stack.DockerMissing):
         soliplex_config.main(["rooms", "--project-dir", str(project)])
 
     assert run.call_args_list == []
@@ -488,6 +458,31 @@ def test_rooms_prints_mappings_and_warns(tmp_path, which, run, capsys):
     )
     assert "/shared/rooms/kb" in captured.err
     assert "skipped" in captured.err
+
+
+def test_rooms_host_environment_binds_and_maps_alternative(
+    alt_installation, which, run, capsys
+):
+    project = alt_installation
+    # A room living under the alternative installation tree (alt/), not the
+    # default backend/environment.
+    alt_room = project / "alt" / "rooms" / "chat"
+    alt_room.mkdir(parents=True)
+    (alt_room / "room_config.yaml").write_text(
+        'id: "chat"\nname: "Alt"\ndescription: "alt tree"\n'
+    )
+    run.return_value.stdout = _config_yaml("/environment/rooms/chat")
+
+    rc = soliplex_config.main(
+        ["rooms", "--project-dir", str(project), "--host-environment", "alt"]
+    )
+
+    assert rc == 0
+    assert capsys.readouterr().out == (
+        "- room_id: chat\n  name: Alt\n  description: alt tree\n"
+    )
+    (sent_cmd,), _ = run.call_args
+    assert f"{(project / 'alt').resolve()}:/environment" in sent_cmd
 
 
 # --------------------------------------------------------------------------
