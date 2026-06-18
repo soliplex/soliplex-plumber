@@ -439,10 +439,14 @@ exception: it queries a <em>running</em> stack, so it needs Docker.</p>
   <code>installation.yaml</code>'s <code>room_paths</code> loads the room (editing line-based, so
   comments and layout are preserved). See the
   <a href="reference/api/">API reference</a>.</li>
+<li><strong><code>stack</code></strong> -- shared plumbing to run <code>soliplex-cli</code> against a stack in a
+  throwaway <code>docker compose run --rm</code> container (validate the stack, build the
+  argv, capture or stream output), optionally binding an alternative
+  installation tree to dry-run against. Needs Docker.</li>
 <li><strong><code>soliplex_config</code></strong> -- query a <em>running</em> stack's resolved installation
   config via <code>soliplex-cli config</code> in a one-off backend container (<code>show</code> /
   <code>get</code> / <code>rooms</code> / <code>room</code>); installs the <code>soliplex-config</code> console script.
-  Needs Docker.</li>
+  Builds on <code>stack</code>.</li>
 </ul>
 <p>There is no re-exporting package <code>__init__</code>; client code imports the submodule
 and uses its members by dotted name:</p>

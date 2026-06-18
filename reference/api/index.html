@@ -357,6 +357,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#stack-run-soliplex-cli-against-a-stack-in-a-throwaway-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>stack</code> — run <code>soliplex-cli</code> against a stack in a throwaway container
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#soliplex_config-query-a-running-stacks-resolved-installation-config" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -442,6 +453,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         <code>rooms</code> — install a room into a Soliplex stack
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stack-run-soliplex-cli-against-a-stack-in-a-throwaway-container" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <code>stack</code> — run <code>soliplex-cli</code> against a stack in a throwaway container
       </span>
     </span>
   </a>
@@ -659,15 +681,20 @@ non-default parent is added).</p>
 </tr>
 </tbody>
 </table>
-<h2 id="soliplex_config-query-a-running-stacks-resolved-installation-config"><code>soliplex_config</code> — query a running stack's resolved installation config<a class="headerlink" href="#soliplex_config-query-a-running-stacks-resolved-installation-config" title="Permanent link">&para;</a></h2>
-<p>The one module that does <strong>not</strong> do pure filesystem work: it runs
-<code>soliplex-cli config &lt;installation&gt;</code> inside a one-off backend container
-(<code>docker compose run --rm</code>) and parses the resolved-config YAML. It therefore
-needs <strong>Docker</strong> on <code>PATH</code>. It installs the <strong><code>soliplex-config</code></strong> console
-script (<code>run</code> wraps <code>main</code> with the user-facing error handling) and backs a
-thin <code>soliplex-cli config</code> shim; the host-mapping helpers honor the resolved
-<code>room_paths</code>, mapping each back through the backend's
-<code>&lt;host-environment&gt; → &lt;installation&gt;</code> bind mount.</p>
+<h2 id="stack-run-soliplex-cli-against-a-stack-in-a-throwaway-container"><code>stack</code> — run <code>soliplex-cli</code> against a stack in a throwaway container<a class="headerlink" href="#stack-run-soliplex-cli-against-a-stack-in-a-throwaway-container" title="Permanent link">&para;</a></h2>
+<p>The shared plumbing for talking to a <em>running</em> stack. <code>soliplex-cli</code> ships only
+inside the backend image, so this spins up a one-off <code>docker compose run --rm</code>
+container pointed at a stack directory and runs the requested command — the
+caller need not be <em>inside</em> a configured/running stack. It needs <strong>Docker</strong> on
+<code>PATH</code>. <code>soliplex_config</code> builds on it, and the <code>soliplex-cli</code> skill uses it to
+run arbitrary subcommands.</p>
+<p>Every soliplex-cli command takes the in-container installation path as its
+leaf-command positional, so <code>cli_args</code> is the subcommand (and options) <em>without</em>
+that path: <code>run_cli</code> appends <code>installation</code>. By default the container uses the
+stack's own bind mount; pass <code>host_environment</code> to bind that host tree onto
+<code>installation</code> instead — pointing the one-off container at an alternative
+installation (e.g. to dry-run changes). A consumer's CLI wires the options that
+feed these calls via <code>add_arguments</code>.</p>
 <table>
 <thead>
 <tr>
@@ -677,13 +704,54 @@ thin <code>soliplex-cli config</code> shim; the host-mapping helpers honor the r
 </thead>
 <tbody>
 <tr>
+<td><code>require_docker()</code></td>
+<td>raise <code>DockerMissing</code> unless the Docker CLI is on <code>PATH</code></td>
+</tr>
+<tr>
 <td><code>resolve_project(project_dir)</code></td>
 <td>resolve a stack root requiring a <code>docker-compose.yml</code>; raises <code>ComposeNotFound</code></td>
 </tr>
 <tr>
-<td><code>run_config(project, service, cli, installation)</code></td>
-<td>run <code>soliplex-cli config</code> in a one-off backend container, returning its stdout</td>
+<td><code>cli_command(project, cli_args, *, service=…, cli=…, installation=…, host_environment=None, columns=…)</code></td>
+<td>build the <code>docker compose run … &lt;cli&gt; &lt;*cli_args&gt; &lt;installation&gt;</code> argv; only adds <code>-v &lt;host_environment&gt;:&lt;installation&gt;</code> when <code>host_environment</code> is given</td>
 </tr>
+<tr>
+<td><code>run_cli(project, cli_args, *, capture=True, check=True, …)</code></td>
+<td><code>require_docker()</code> then run the command; <code>capture</code> returns output for parsing, else streams it; returns a <code>CompletedProcess</code></td>
+</tr>
+<tr>
+<td><code>add_arguments(parser)</code></td>
+<td>add the <code>--project-dir</code> / <code>--service</code> / <code>--cli</code> / <code>--installation</code> / <code>--host-environment</code> options a consumer feeds to <code>resolve_project</code> / <code>run_cli</code></td>
+</tr>
+<tr>
+<td><code>DEFAULT_SERVICE</code> / <code>DEFAULT_CLI</code> / <code>DEFAULT_INSTALLATION</code> / <code>DEFAULT_HOST_ENVIRONMENT</code> / <code>WIDE_COLUMNS</code></td>
+<td>the container defaults</td>
+</tr>
+<tr>
+<td><code>StackError</code></td>
+<td>base class for the user-facing errors (printed without a traceback)</td>
+</tr>
+<tr>
+<td><code>DockerMissing</code> / <code>ComposeNotFound</code></td>
+<td>the specific failure modes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="soliplex_config-query-a-running-stacks-resolved-installation-config"><code>soliplex_config</code> — query a running stack's resolved installation config<a class="headerlink" href="#soliplex_config-query-a-running-stacks-resolved-installation-config" title="Permanent link">&para;</a></h2>
+<p>Builds on <code>stack</code>: runs <code>soliplex-cli config &lt;installation&gt;</code> (via
+<code>stack.run_cli</code>) and parses the resolved-config YAML. It installs the
+<strong><code>soliplex-config</code></strong> console script (<code>run</code> wraps <code>main</code> with the user-facing
+error handling) and backs a thin <code>soliplex-cli config</code> shim; the host-mapping
+helpers honor the resolved <code>room_paths</code>, mapping each back through the backend's
+<code>&lt;host-environment&gt; → &lt;installation&gt;</code> bind mount.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
 <tr>
 <td><code>parse_config(stdout)</code></td>
 <td>parse the YAML body (banner comments and all) into a dict (<code>{}</code> if not a mapping)</td>
@@ -722,14 +790,14 @@ thin <code>soliplex-cli config</code> shim; the host-mapping helpers honor the r
 </tr>
 <tr>
 <td><code>run()</code></td>
-<td>the <code>soliplex-config</code> console-script entry point — <code>main(sys.argv[1:])</code> with the user-facing errors below printed (no traceback) as exit code 2</td>
+<td>the <code>soliplex-config</code> console-script entry point — <code>main(sys.argv[1:])</code> with <code>stack.StackError</code> / <code>CalledProcessError</code> printed (no traceback) as exit code 2</td>
 </tr>
 <tr>
-<td><code>SoliplexConfigError</code></td>
-<td>base class for the user-facing errors below</td>
+<td><code>SoliplexConfigError(stack.StackError)</code></td>
+<td>base class for the config-specific errors below</td>
 </tr>
 <tr>
-<td><code>DockerMissing</code> / <code>ComposeNotFound</code> / <code>NoRoomPaths</code> / <code>KeyNotFound</code> / <code>RoomNotFound</code></td>
+<td><code>NoRoomPaths</code> / <code>KeyNotFound</code> / <code>RoomNotFound</code></td>
 <td>the specific failure modes</td>
 </tr>
 </tbody>
