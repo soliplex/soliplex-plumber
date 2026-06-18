@@ -72,21 +72,45 @@ non-default parent is added).
 | `ADDED` / `UNCHANGED` / `COVERED` | the `installation.TargetAction` members, re-exported |
 | `ROOMS_PARENT_ENTRY` | the `./rooms` default-discovery container |
 
+## `stack` — run `soliplex-cli` against a stack in a throwaway container
+
+The shared plumbing for talking to a *running* stack. `soliplex-cli` ships only
+inside the backend image, so this spins up a one-off `docker compose run --rm`
+container pointed at a stack directory and runs the requested command — the
+caller need not be *inside* a configured/running stack. It needs **Docker** on
+`PATH`. `soliplex_config` builds on it, and the `soliplex-cli` skill uses it to
+run arbitrary subcommands.
+
+Every soliplex-cli command takes the in-container installation path as its
+leaf-command positional, so `cli_args` is the subcommand (and options) *without*
+that path: `run_cli` appends `installation`. By default the container uses the
+stack's own bind mount; pass `host_environment` to bind that host tree onto
+`installation` instead — pointing the one-off container at an alternative
+installation (e.g. to dry-run changes). A consumer's CLI wires the options that
+feed these calls via `add_arguments`.
+
+| Member | Purpose |
+| --- | --- |
+| `require_docker()` | raise `DockerMissing` unless the Docker CLI is on `PATH` |
+| `resolve_project(project_dir)` | resolve a stack root requiring a `docker-compose.yml`; raises `ComposeNotFound` |
+| `cli_command(project, cli_args, *, service=…, cli=…, installation=…, host_environment=None, columns=…)` | build the `docker compose run … <cli> <*cli_args> <installation>` argv; only adds `-v <host_environment>:<installation>` when `host_environment` is given |
+| `run_cli(project, cli_args, *, capture=True, check=True, …)` | `require_docker()` then run the command; `capture` returns output for parsing, else streams it; returns a `CompletedProcess` |
+| `add_arguments(parser)` | add the `--project-dir` / `--service` / `--cli` / `--installation` / `--host-environment` options a consumer feeds to `resolve_project` / `run_cli` |
+| `DEFAULT_SERVICE` / `DEFAULT_CLI` / `DEFAULT_INSTALLATION` / `DEFAULT_HOST_ENVIRONMENT` / `WIDE_COLUMNS` | the container defaults |
+| `StackError` | base class for the user-facing errors (printed without a traceback) |
+| `DockerMissing` / `ComposeNotFound` | the specific failure modes |
+
 ## `soliplex_config` — query a running stack's resolved installation config
 
-The one module that does **not** do pure filesystem work: it runs
-`soliplex-cli config <installation>` inside a one-off backend container
-(`docker compose run --rm`) and parses the resolved-config YAML. It therefore
-needs **Docker** on `PATH`. It installs the **`soliplex-config`** console
-script (`run` wraps `main` with the user-facing error handling) and backs a
-thin `soliplex-cli config` shim; the host-mapping helpers honor the resolved
-`room_paths`, mapping each back through the backend's
+Builds on `stack`: runs `soliplex-cli config <installation>` (via
+`stack.run_cli`) and parses the resolved-config YAML. It installs the
+**`soliplex-config`** console script (`run` wraps `main` with the user-facing
+error handling) and backs a thin `soliplex-cli config` shim; the host-mapping
+helpers honor the resolved `room_paths`, mapping each back through the backend's
 `<host-environment> → <installation>` bind mount.
 
 | Member | Purpose |
 | --- | --- |
-| `resolve_project(project_dir)` | resolve a stack root requiring a `docker-compose.yml`; raises `ComposeNotFound` |
-| `run_config(project, service, cli, installation)` | run `soliplex-cli config` in a one-off backend container, returning its stdout |
 | `parse_config(stdout)` | parse the YAML body (banner comments and all) into a dict (`{}` if not a mapping) |
 | `navigate(config, key)` | resolve a dotted `key` (mapping names / sequence indices) into the config; raises `KeyNotFound` |
 | `render_value(value, fmt)` | render a value `plain` (scalar bare, list-of-scalars one per line, else YAML) or `yaml` |
@@ -96,6 +120,6 @@ thin `soliplex-cli config` shim; the host-mapping helpers honor the resolved
 | `resolve_rooms(project, service, cli, installation, host_environment)` | the loaded rooms' `{room_id, name, description}` mappings + the unmapped container paths |
 | `do_show` / `do_get` / `do_rooms` / `do_room` | the subcommand handlers (each takes the parsed `argparse.Namespace`) |
 | `build_parser()` / `parse_args(argv)` / `main(argv)` | the `show`/`get`/`rooms`/`room` CLI; `main` returns the process exit code |
-| `run()` | the `soliplex-config` console-script entry point — `main(sys.argv[1:])` with the user-facing errors below printed (no traceback) as exit code 2 |
-| `SoliplexConfigError` | base class for the user-facing errors below |
-| `DockerMissing` / `ComposeNotFound` / `NoRoomPaths` / `KeyNotFound` / `RoomNotFound` | the specific failure modes |
+| `run()` | the `soliplex-config` console-script entry point — `main(sys.argv[1:])` with `stack.StackError` / `CalledProcessError` printed (no traceback) as exit code 2 |
+| `SoliplexConfigError(stack.StackError)` | base class for the config-specific errors below |
+| `NoRoomPaths` / `KeyNotFound` / `RoomNotFound` | the specific failure modes |
