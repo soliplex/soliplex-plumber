@@ -216,8 +216,8 @@ def test_install_room_added_splices_individual_entry(tmp_path):
     handbook_id_yaml = _just_id_yaml("handbook")
 
     installed = rooms.install_room(
-        project,
-        "handbook",
+        project=project,
+        room_id="handbook",
         config_text=handbook_id_yaml,
         parent_path="./rooms",
     )
@@ -233,7 +233,10 @@ def test_install_room_into_explicitly_disabled_rooms(tmp_path):
     project = _make_stack(tmp_path, inst_text=ROOM_PATHS_DISABLED_YAML)
 
     installed = rooms.install_room(
-        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+        project=project,
+        room_id="handbook",
+        config_text=X_ID_YAML,
+        parent_path="./rooms",
     )
 
     assert installed.path_action == rooms.ADDED
@@ -254,7 +257,10 @@ def test_install_room_unchanged_when_entry_listed(tmp_path):
     before = _installation(project).read_text()
 
     installed = rooms.install_room(
-        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+        project=project,
+        room_id="handbook",
+        config_text=X_ID_YAML,
+        parent_path="./rooms",
     )
 
     assert installed.path_action == rooms.UNCHANGED
@@ -267,7 +273,10 @@ def test_install_room_covered_by_container(tmp_path):
     before = _installation(project).read_text()
 
     installed = rooms.install_room(
-        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+        project=project,
+        room_id="handbook",
+        config_text=X_ID_YAML,
+        parent_path="./rooms",
     )
 
     assert installed.path_action == rooms.COVERED
@@ -280,7 +289,10 @@ def test_install_room_covered_by_absent_default(tmp_path):
     before = _installation(project).read_text()
 
     installed = rooms.install_room(
-        project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+        project=project,
+        room_id="handbook",
+        config_text=X_ID_YAML,
+        parent_path="./rooms",
     )
 
     assert installed.path_action == rooms.COVERED
@@ -292,7 +304,10 @@ def test_install_room_materializes_default_for_other_parent(tmp_path):
     project = _make_stack(tmp_path, inst_text=DEMO_NAME_YAML)
 
     installed = rooms.install_room(
-        project, "handbook", config_text=X_ID_YAML, parent_path="./custom"
+        project=project,
+        room_id="handbook",
+        config_text=X_ID_YAML,
+        parent_path="./custom",
     )
 
     assert installed.path_action == rooms.ADDED
@@ -316,8 +331,8 @@ def test_install_room_writes_prompt_file(tmp_path):
     qa_id_yaml = _just_id_yaml("qa")
 
     installed = rooms.install_room(
-        project,
-        "qa",
+        project=project,
+        room_id="qa",
         config_text=qa_id_yaml,
         prompt_text="Be helpful.",
         parent_path="./rooms",
@@ -333,8 +348,8 @@ def test_install_room_dry_run_writes_nothing(tmp_path):
     before = _installation(project).read_text()
 
     installed = rooms.install_room(
-        project,
-        "handbook",
+        project=project,
+        room_id="handbook",
         config_text=X_ID_YAML,
         parent_path="./rooms",
         dry_run=True,
@@ -351,7 +366,10 @@ def test_install_room_exists_without_force(tmp_path):
 
     with pytest.raises(rooms.RoomExists):
         rooms.install_room(
-            project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+            project=project,
+            room_id="handbook",
+            config_text=X_ID_YAML,
+            parent_path="./rooms",
         )
 
 
@@ -362,8 +380,8 @@ def test_install_room_force_overwrites(tmp_path):
     _write_text(room / "room_config.yaml", STALE_ID_YAML)
 
     installed = rooms.install_room(
-        project,
-        "handbook",
+        project=project,
+        room_id="handbook",
         config_text=FRESH_ID_YAML,
         parent_path="./rooms",
         force=True,
@@ -383,7 +401,10 @@ def test_install_room_rejects_parent_that_is_a_room(tmp_path):
 
     with pytest.raises(rooms.ParentIsRoom):
         rooms.install_room(
-            project, "handbook", config_text=X_ID_YAML, parent_path="./rooms"
+            project=project,
+            room_id="handbook",
+            config_text=X_ID_YAML,
+            parent_path="./rooms",
         )
 
 
@@ -399,7 +420,10 @@ def test_install_room_from_copies_tree(tmp_path):
     src = _src_room(tmp_path)
 
     installed = rooms.install_room_from(
-        project, "handbook", src, parent_path="./rooms"
+        project=project,
+        room_id="handbook",
+        src_dir=src,
+        parent_path="./rooms",
     )
 
     assert installed.path_action == rooms.ADDED
@@ -415,8 +439,178 @@ def test_install_room_from_force_overwrites(tmp_path):
     _write_text(room / "room_config.yaml", STALE_ID_YAML)
 
     installed = rooms.install_room_from(
-        project, "handbook", src, parent_path="./rooms", force=True
+        project=project,
+        room_id="handbook",
+        src_dir=src,
+        parent_path="./rooms",
+        force=True,
     )
 
     assert installed.path_action == rooms.ADDED
     assert _read_text(room / "room_config.yaml") == FRESH_ID_YAML
+
+
+# --------------------------------------------------------------------------
+# target selection: project vs environment, and the deprecated positional form
+# --------------------------------------------------------------------------
+def test_install_room_targets_environment_directly(tmp_path):
+    project = _make_stack(tmp_path)
+
+    installed = rooms.install_room(
+        environment=_env(project),
+        room_id="handbook",
+        config_text=X_ID_YAML,
+        parent_path="./rooms",
+    )
+
+    assert installed.config_path == _room_dir(project) / "room_config.yaml"
+    assert installed.config_path.read_text() == X_ID_YAML
+    assert installed.path_action == rooms.ADDED
+
+
+def test_install_room_from_targets_environment_directly(tmp_path):
+    project = _make_stack(tmp_path)
+    src = _src_room(tmp_path)
+
+    installed = rooms.install_room_from(
+        environment=_env(project),
+        room_id="handbook",
+        src_dir=src,
+        parent_path="./rooms",
+    )
+
+    assert installed.config_path == _room_dir(project) / "room_config.yaml"
+    assert _read_text(installed.config_path) == 'id: "src"'
+
+
+def test_install_room_deprecated_positional_warns(tmp_path):
+    project = _make_stack(tmp_path)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match=rooms.INSTALL_ROOM_POS_ARGS_DEPRECATION,
+    ):
+        installed = rooms.install_room(
+            project,
+            "handbook",
+            config_text=X_ID_YAML,
+            parent_path="./rooms",
+        )
+
+    assert installed.config_path == _room_dir(project) / "room_config.yaml"
+    assert installed.config_path.read_text() == X_ID_YAML
+
+
+def test_install_room_from_deprecated_positional_warns(tmp_path):
+    project = _make_stack(tmp_path)
+    src = _src_room(tmp_path)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match=rooms.INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION,
+    ):
+        installed = rooms.install_room_from(
+            project, "handbook", src, parent_path="./rooms"
+        )
+
+    assert _read_text(installed.config_path) == 'id: "src"'
+
+
+def test_install_room_requires_a_target(tmp_path):
+    with pytest.raises(TypeError):
+        rooms.install_room(
+            room_id="handbook", config_text=X_ID_YAML, parent_path="./rooms"
+        )
+
+
+def test_install_room_rejects_both_targets(tmp_path):
+    project = _make_stack(tmp_path)
+
+    with pytest.raises(TypeError):
+        rooms.install_room(
+            project=project,
+            environment=_env(project),
+            room_id="handbook",
+            config_text=X_ID_YAML,
+            parent_path="./rooms",
+        )
+
+
+def test_install_room_requires_room_id(tmp_path):
+    project = _make_stack(tmp_path)
+
+    with pytest.raises(TypeError):
+        rooms.install_room(
+            project=project, config_text=X_ID_YAML, parent_path="./rooms"
+        )
+
+
+def test_install_room_rejects_positional_with_keyword_room_id(tmp_path):
+    project = _make_stack(tmp_path)
+
+    with (
+        pytest.warns(
+            DeprecationWarning,
+            match=rooms.INSTALL_ROOM_POS_ARGS_DEPRECATION,
+        ),
+        pytest.raises(TypeError),
+    ):
+        rooms.install_room(
+            project,
+            room_id="handbook",
+            config_text=X_ID_YAML,
+            parent_path="./rooms",
+        )
+
+
+def test_install_room_rejects_incomplete_positional_pair(tmp_path):
+    project = _make_stack(tmp_path)
+
+    with (
+        pytest.warns(
+            DeprecationWarning,
+            match=rooms.INSTALL_ROOM_POS_ARGS_DEPRECATION,
+        ),
+        pytest.raises(TypeError),
+    ):
+        rooms.install_room(
+            project, config_text=X_ID_YAML, parent_path="./rooms"
+        )
+
+
+def test_install_room_from_requires_src_dir(tmp_path):
+    project = _make_stack(tmp_path)
+
+    with pytest.raises(TypeError):
+        rooms.install_room_from(
+            project=project, room_id="handbook", parent_path="./rooms"
+        )
+
+
+def test_install_room_from_rejects_positional_and_keyword_src_dir(tmp_path):
+    project = _make_stack(tmp_path)
+    src = _src_room(tmp_path)
+
+    with (
+        pytest.warns(
+            DeprecationWarning,
+            match=rooms.INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION,
+        ),
+        pytest.raises(TypeError),
+    ):
+        rooms.install_room_from(
+            project, "handbook", src, src_dir=src, parent_path="./rooms"
+        )
+
+
+def test_install_room_from_rejects_incomplete_positional_form(tmp_path):
+    project = _make_stack(tmp_path)
+
+    with (
+        pytest.warns(
+            DeprecationWarning,
+            match=rooms.INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION,
+        ),
+        pytest.raises(TypeError),
+    ):
+        rooms.install_room_from(project, "handbook", parent_path="./rooms")
