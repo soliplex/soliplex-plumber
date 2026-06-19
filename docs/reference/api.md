@@ -95,6 +95,9 @@ feed these calls via `add_arguments`.
 | `resolve_project(project_dir)` | resolve a stack root requiring a `docker-compose.yml`; raises `ComposeNotFound` |
 | `cli_command(project, cli_args, *, service=…, cli=…, installation=…, host_environment=None, columns=…)` | build the `docker compose run … <cli> <*cli_args> <installation>` argv; only adds `-v <host_environment>:<installation>` when `host_environment` is given |
 | `run_cli(project, cli_args, *, capture=True, check=True, …)` | `require_docker()` then run the command; `capture` returns output for parsing, else streams it; returns a `CompletedProcess` |
+| `live_environment(project, *, service=…, installation=…, environment=…)` | context manager yielding an `Environment` for the stack's real installation tree (audited in place, no copy) |
+| `scratch_environment(project, *, service=…, installation=…, environment=…)` | context manager yielding an `Environment` for a throw-away config-only copy of the tree (skips `*.lancedb`; removed on exit) |
+| `Environment(path, project, service, installation)` | a selected installation tree bound to its stack; `.path` is the host bind source, `.run_cli(cli_args, **kw)` is `run_cli` pre-bound to `project` / `service` / `installation` / `host_environment=path` |
 | `add_arguments(parser)` | add the `--project-dir` / `--service` / `--cli` / `--installation` / `--host-environment` options a consumer feeds to `resolve_project` / `run_cli` |
 | `DEFAULT_SERVICE` / `DEFAULT_CLI` / `DEFAULT_INSTALLATION` / `DEFAULT_HOST_ENVIRONMENT` / `WIDE_COLUMNS` | the container defaults |
 | `StackError` | base class for the user-facing errors (printed without a traceback) |

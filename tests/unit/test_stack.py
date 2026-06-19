@@ -31,6 +31,15 @@ def _make_project(tmp_path, *, compose=True) -> pathlib.Path:
     return project
 
 
+def _make_env_project(tmp_path) -> pathlib.Path:
+    """A stack whose ``backend/environment`` holds a minimal installation."""
+    project = _make_project(tmp_path)
+    env = project / "backend" / "environment"
+    env.mkdir(parents=True)
+    (env / "installation.yaml").write_text('id: "demo"\n')
+    return project
+
+
 @pytest.fixture
 def which(monkeypatch):
     w = mock.Mock(return_value="/usr/bin/docker")
@@ -186,3 +195,65 @@ def test_run_cli_propagates_called_process_error(tmp_path, which, run):
 
     with pytest.raises(subprocess.CalledProcessError):
         stack.run_cli(project, ["config"])
+
+
+# --------------------------------------------------------------------------
+# Environment.run_cli (the bound runner the env context managers yield)
+# --------------------------------------------------------------------------
+def test_environment_run_cli_binds_path_service_and_host(tmp_path, which, run):
+    env = stack.Environment(
+        tmp_path / "env", tmp_path / "proj", "api", "/install"
+    )
+
+    env.run_cli(["audit", "rooms"], check=False)
+
+    (sent_cmd,), kwargs = run.call_args
+    assert "-v" in sent_cmd
+    # the bound host tree mounted onto the bound (custom) installation path
+    assert f"{tmp_path / 'env'}:/install" in sent_cmd
+    assert sent_cmd[-1] == "/install"  # the installation positional too
+    assert "api" in sent_cmd  # the bound service
+    assert kwargs["check"] is False  # forwarded override
+
+
+# --------------------------------------------------------------------------
+# live_environment / scratch_environment
+# --------------------------------------------------------------------------
+def test_live_environment_yields_real_tree(tmp_path):
+    project = _make_env_project(tmp_path)
+
+    with stack.live_environment(project) as env:
+        path = env.path
+
+    assert path == (project / "backend" / "environment").resolve()
+
+
+def test_scratch_environment_copies_config_skips_dbs_and_cleans_up(tmp_path):
+    project = _make_env_project(tmp_path)
+    db = project / "backend" / "environment" / "vectors.lancedb"
+    db.mkdir()
+    (db / "data").write_text("blob")
+
+    with stack.scratch_environment(project) as env:
+        has_installation = (env.path / "installation.yaml").is_file()
+        has_db = (env.path / "vectors.lancedb").exists()
+        under_project = project in env.path.parents
+        scratch_root = env.path.parent
+
+    assert has_installation  # config copied
+    assert not has_db  # *.lancedb skipped
+    assert under_project  # reachable by the docker daemon
+    assert not scratch_root.exists()  # removed on exit
+
+
+def test_scratch_environment_binds_the_copy(tmp_path, which, run):
+    project = _make_env_project(tmp_path)
+
+    with stack.scratch_environment(project) as env:
+        env.run_cli(["audit", "rooms"], check=False)
+        scratch_path = env.path
+
+    (sent_cmd,), _ = run.call_args
+    assert "-v" in sent_cmd
+    assert f"{scratch_path}:/environment" in sent_cmd
+    assert scratch_path != (project / "backend" / "environment").resolve()

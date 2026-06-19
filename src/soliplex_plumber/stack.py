@@ -1,42 +1,37 @@
 """Run a Soliplex stack's ``soliplex-cli`` in a throwaway Docker container.
 
 ``soliplex-cli`` ships only inside the backend image, so to run it against a
-stack on disk -- without the caller being *inside* a configured / running
-stack -- we spin up a one-off container with ``docker compose run --rm``
-pointed at the stack directory. This module is the shared plumbing for that:
-validate the stack root, check Docker is present, build the ``docker compose
-run`` argv, and run it (capturing the output for parsing, or streaming it
-through to the caller).
+stack on disk we spin up a one-off container with ``docker compose run --rm``
+pointed at the stack directory.
 
-``soliplex_plumber.soliplex_config`` builds on it (for the ``config``
-subcommand it parses), and the ``soliplex-cli`` skill uses it to run arbitrary
-subcommands. Unlike the rest of ``soliplex_plumber`` -- pure filesystem work
-on an *existing* stack -- this module talks to a *running* one and needs
-Docker on ``PATH``.
+This module is the shared plumbing for that flow:
+
+- Validate the stack root.
+- Check Docker is present.
+- Build the ``docker compose run`` argv.
+- Run it, capturing or streaming the output.
+
+.. note::
+
+   Because this module talks to a *running* Docker instance, it needs
+   Docker on ``PATH``.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
+import dataclasses
 import pathlib
 import shutil
 import subprocess
+import tempfile
 
-# The compose service that ships soliplex-cli, the binary's in-container path
-# (the compose command launches it by absolute path -- the venv is not on
-# PATH), and the in-container installation path it serves -- every soliplex-cli
-# command takes that path as its leaf-command positional argument.
-DEFAULT_SERVICE = "backend"
-DEFAULT_CLI = "/app/.venv/bin/soliplex-cli"
-DEFAULT_INSTALLATION = "/environment"
-# The host directory (relative to the stack root) bind-mounted onto
-# ``DEFAULT_INSTALLATION`` for the backend service. Overridable per-run so a
-# caller can point the one-off container at an alternative installation tree
-# (e.g. to dry-run changes) instead of the deployed one.
-DEFAULT_HOST_ENVIRONMENT = "backend/environment"
-# A wide terminal so rich (soliplex-cli's console) does not wrap long lines in
-# the captured, non-TTY output (which would, e.g., corrupt parsed YAML).
-WIDE_COLUMNS = "10000"
+DEFAULT_SERVICE = "backend"  # docker compose service name
+DEFAULT_CLI = "/app/.venv/bin/soliplex-cli"  # in-container CLI command
+DEFAULT_INSTALLATION = "/environment"  # in-container mount point
+DEFAULT_HOST_ENVIRONMENT = "backend/environment"  # host dir, rel. to project
+WIDE_COLUMNS = "10000"  # wide terminal, avoid 'rich' wrapping.
 
 
 class StackError(Exception):
@@ -86,19 +81,22 @@ def cli_command(
 ) -> list[str]:
     """Build the ``docker compose run`` argv for a one-off soliplex-cli call.
 
-    Runs ``cli`` (the in-container soliplex-cli path) with ``cli_args`` in a
-    throwaway ``service`` container for the stack at ``project``, ending with
-    ``installation`` -- the in-container installation path that every
-    soliplex-cli command takes as its leaf-command positional. ``cli_args`` is
-    therefore the subcommand (and any options), *without* that path.
+    ``["-e", "COLUMNS={columns}"]`` prevents soliplex-cli console from
+    wrapping long lines.
 
-    By default the container uses the stack's own bind mount for
-    ``installation``. Pass ``host_environment`` (relative to ``project``) to
-    instead bind-mount that host tree onto ``installation`` -- pointing the
-    one-off container at an alternative installation. ``COLUMNS`` is forced to
-    ``columns`` so the soliplex-cli console does not wrap long lines.
+    Pass ``host_environment`` (relative to ``project``) to bind-mount a
+    non-default host tree onto ``installation``.
+
+    The user-supplied on-container command (after the service name)
+    is ``<cli> <cli_args> <installation>``:
+
+    - ``cli`` is the top-level command ("soliplex-cli" by default)
+
+    - ``cli_args`` is the subcommand (and any options)
+
+    - ``installation`` is the on-container path to the installation config.
     """
-    cmd = [
+    base_cmd = [
         "docker",
         "compose",
         "--project-directory",
@@ -109,11 +107,22 @@ def cli_command(
         "-e",
         f"COLUMNS={columns}",
     ]
-    if host_environment is not None:
-        host_path = (project / host_environment).resolve()
-        cmd += ["-v", f"{host_path}:{installation}"]
-    cmd += [service, cli, *cli_args, installation]
-    return cmd
+    mount_point = (
+        []
+        if host_environment is None
+        else [
+            "-v",
+            f"{(project / host_environment).resolve()}:{installation}",
+        ]
+    )
+    return [
+        *base_cmd,
+        *mount_point,
+        service,
+        cli,
+        *cli_args,
+        installation,
+    ]
 
 
 def run_cli(
@@ -130,14 +139,22 @@ def run_cli(
 ) -> subprocess.CompletedProcess:
     """Run a soliplex-cli command in a one-off backend container.
 
-    Requires Docker. ``cli_args`` is the subcommand (and options) without the
-    installation path -- ``installation`` is appended as the positional, and
-    ``host_environment`` (when given) is bind-mounted onto it to query an
-    alternative installation (see :func:`cli_command`). With ``capture`` (the
-    default) stdout/stderr are captured on the returned ``CompletedProcess`` --
-    for parsing; pass ``capture=False`` to stream them through to the caller's
-    terminal. ``check`` (the default) raises ``subprocess.CalledProcessError``
-    on a non-zero exit.
+    Requires Docker.
+
+    See :func:`cli_command` for these parameters:
+    - ``project``
+    - ``cli_args``
+    - ``service``
+    - ``cli``
+    - ``installation``
+    - ``host_environment``
+    - ``columns``
+
+    If ``capture`` is true, capture stdout/stderr for parsing on the returned
+    ``CompletedProcess``;  otherwise they stream to the caller.
+
+    If ``check`` is True, raise ``subprocess.CalledProcessError`` on a
+    non-zero exit.
     """
     require_docker()
     cmd = cli_command(
@@ -152,15 +169,91 @@ def run_cli(
     return subprocess.run(cmd, capture_output=capture, text=True, check=check)
 
 
-def add_arguments(parser: argparse.ArgumentParser) -> None:
-    """Add the CLI options that select and target a stack and its container.
+@dataclasses.dataclass(frozen=True)
+class Environment:
+    """A selected installation tree, bound to its stack for running the CLI.
 
-    A consumer's argparse front end calls this, then hands the parsed values
-    to :func:`resolve_project` (``project_dir``) and :func:`run_cli`
-    (``service`` / ``cli`` / ``installation`` / ``host_environment``).
-    ``--host-environment`` defaults to ``None`` -- omit it to use the stack's
-    own bind mount; pass it to bind an alternative installation tree.
+    ``path`` is the resolved host tree to bind onto the in-container path
+    (``installation``).
+
+    :meth:`run_cli` is :func:`run_cli`, pre-bound to this stack's
+    ``project``, ``service``, ``installation``, and ``host_environment=path``.
     """
+
+    path: pathlib.Path
+    project: pathlib.Path
+    service: str
+    installation: str
+
+    def run_cli(
+        self, cli_args: list[str], **kwargs
+    ) -> subprocess.CompletedProcess:
+        """Call :func:`run_cli` passing curried options.
+
+        Pass only subcommand and non-default ``capture`` / ``check`` options.
+        """
+        return run_cli(
+            self.project,
+            cli_args,
+            service=self.service,
+            installation=self.installation,
+            host_environment=str(self.path),
+            **kwargs,
+        )
+
+
+@contextlib.contextmanager
+def live_environment(
+    project: pathlib.Path,
+    *,
+    service: str = DEFAULT_SERVICE,
+    installation: str = DEFAULT_INSTALLATION,
+    environment: str = DEFAULT_HOST_ENVIRONMENT,
+):
+    """Yield environment binding the stack's live installation config."""
+    yield Environment(
+        (project / environment).resolve(), project, service, installation
+    )
+
+
+@contextlib.contextmanager
+def scratch_environment(
+    project: pathlib.Path,
+    *,
+    service: str = DEFAULT_SERVICE,
+    installation: str = DEFAULT_INSTALLATION,
+    environment: str = DEFAULT_HOST_ENVIRONMENT,
+):
+    """Yield environment binding a scratch copy of the stack environment.
+
+    Copy[*] ``<project>/<environment>`` into a temp directory beside the
+    project, so that the bind path stays reachable by the docker daemon.
+
+    Bind yielded :class:`Environment` to the copy.
+
+    Remove the temp directory on exit.
+
+    * By default, RAG databases are mounted to a ``rag/db`` mount from a tree
+      outside the environment;  the copy omits any Lancd DBs which
+      *are* in the tree to keep the copy cheap.
+    """
+    scratch_root = pathlib.Path(tempfile.mkdtemp(dir=project))
+    try:
+        scratch_env = scratch_root / pathlib.PurePosixPath(environment).name
+        shutil.copytree(
+            project / environment,
+            scratch_env,
+            ignore=shutil.ignore_patterns("*.lancedb"),
+        )
+        yield Environment(
+            scratch_env.resolve(), project, service, installation
+        )
+    finally:
+        shutil.rmtree(scratch_root, ignore_errors=True)
+
+
+def add_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add CLI options targeting a stack and its container."""
     parser.add_argument(
         "--project-dir",
         default=".",
