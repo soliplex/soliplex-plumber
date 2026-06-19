@@ -720,6 +720,18 @@ feed these calls via <code>add_arguments</code>.</p>
 <td><code>require_docker()</code> then run the command; <code>capture</code> returns output for parsing, else streams it; returns a <code>CompletedProcess</code></td>
 </tr>
 <tr>
+<td><code>live_environment(project, *, service=…, installation=…, environment=…)</code></td>
+<td>context manager yielding an <code>Environment</code> for the stack's real installation tree (audited in place, no copy)</td>
+</tr>
+<tr>
+<td><code>scratch_environment(project, *, service=…, installation=…, environment=…)</code></td>
+<td>context manager yielding an <code>Environment</code> for a throw-away config-only copy of the tree (skips <code>*.lancedb</code>; removed on exit)</td>
+</tr>
+<tr>
+<td><code>Environment(path, project, service, installation)</code></td>
+<td>a selected installation tree bound to its stack; <code>.path</code> is the host bind source, <code>.run_cli(cli_args, **kw)</code> is <code>run_cli</code> pre-bound to <code>project</code> / <code>service</code> / <code>installation</code> / <code>host_environment=path</code></td>
+</tr>
+<tr>
 <td><code>add_arguments(parser)</code></td>
 <td>add the <code>--project-dir</code> / <code>--service</code> / <code>--cli</code> / <code>--installation</code> / <code>--host-environment</code> options a consumer feeds to <code>resolve_project</code> / <code>run_cli</code></td>
 </tr>
