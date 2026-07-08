@@ -37,7 +37,6 @@ import dataclasses
 import pathlib
 import re
 import shutil
-import warnings
 
 from soliplex_plumber import installation
 from soliplex_plumber import sections
@@ -132,22 +131,6 @@ class RequiredArgument(InstallArgError):
     def __init__(self, name):
         self.name = name
         super().__init__(f"`{name}` is required")
-
-
-class MixedPositional(InstallArgError):
-    def __init__(self, names):
-        joined = "/".join(f"`{name}`" for name in names)
-        super().__init__(
-            f"got both positional and keyword values for {joined}"
-        )
-
-
-class BadPositionalForm(InstallArgError):
-    def __init__(self, names):
-        joined = ", ".join(names)
-        super().__init__(
-            f"the deprecated positional form takes exactly ({joined})"
-        )
 
 
 def validate_room_id(room_id: str) -> None:
@@ -379,16 +362,8 @@ def _install_room(
     return RoomInstalled(config_path=config_path, path_action=path_action)
 
 
-INSTALL_ROOM_POS_ARGS_DEPRECATION = """\
-Passing `project` and `room_id` to 'install_room' as positional args
-is deprecated, and will be removed after version 0.4.
-
-Pass them instead as keyword arguments.
-"""
-
-
 def install_room(
-    *depr_project_room_id,
+    *,
     project: pathlib.Path | None = None,
     room_id: str | None = None,
     environment: pathlib.Path | None = None,
@@ -419,22 +394,6 @@ def install_room(
        The legacy ``install_room(project, room_id, ...)`` positional form
        still works but is deprecated -- prefer the keywords.
     """
-    if depr_project_room_id:
-        pos_arg_names = ("project", "room_id")
-
-        warnings.warn(
-            INSTALL_ROOM_POS_ARGS_DEPRECATION,
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        if project is not None or room_id is not None:
-            raise MixedPositional(pos_arg_names)
-
-        try:
-            project, room_id = depr_project_room_id
-        except ValueError:
-            raise BadPositionalForm(pos_arg_names) from None
 
     def _write(room_dir: pathlib.Path) -> None:
         room_dir.mkdir(parents=True, exist_ok=True)
@@ -453,16 +412,8 @@ def install_room(
     )
 
 
-INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION = """\
-Passing `project`, `room_id`, and 'src_dir' to 'install_room_from'
-as positional args is deprecated, and will be removed after version 0.4.
-
-Pass them instead as keyword arguments.
-"""
-
-
 def install_room_from(
-    *depr_project_room_id_src_dir,
+    *,
     project: pathlib.Path | None = None,
     room_id: str | None = None,
     src_dir: pathlib.Path | None = None,
@@ -488,23 +439,6 @@ def install_room_from(
         The legacy ``install_room_from(project, room_id, src_dir, ...)``
         positional form still works but is deprecated -- prefer the keywords.
     """
-    if depr_project_room_id_src_dir:
-        pos_arg_names = ("project", "room_id", "src_dir")
-
-        warnings.warn(
-            INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION,
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        if project is not None or room_id is not None or src_dir is not None:
-            raise MixedPositional(pos_arg_names)
-
-        try:
-            project, room_id, src_dir = depr_project_room_id_src_dir
-        except ValueError:
-            raise BadPositionalForm(pos_arg_names) from None
-
     if src_dir is None:
         raise RequiredArgument("src_dir")
 

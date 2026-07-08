@@ -483,39 +483,6 @@ def test_install_room_from_targets_environment_directly(tmp_path):
     assert _read_text(installed.config_path) == 'id: "src"'
 
 
-def test_install_room_deprecated_positional_warns(tmp_path):
-    project = _make_stack(tmp_path)
-
-    with pytest.warns(
-        DeprecationWarning,
-        match=rooms.INSTALL_ROOM_POS_ARGS_DEPRECATION,
-    ):
-        installed = rooms.install_room(
-            project,
-            "handbook",
-            config_text=X_ID_YAML,
-            parent_path="./rooms",
-        )
-
-    assert installed.config_path == _room_dir(project) / "room_config.yaml"
-    assert installed.config_path.read_text() == X_ID_YAML
-
-
-def test_install_room_from_deprecated_positional_warns(tmp_path):
-    project = _make_stack(tmp_path)
-    src = _src_room(tmp_path)
-
-    with pytest.warns(
-        DeprecationWarning,
-        match=rooms.INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION,
-    ):
-        installed = rooms.install_room_from(
-            project, "handbook", src, parent_path="./rooms"
-        )
-
-    assert _read_text(installed.config_path) == 'id: "src"'
-
-
 def test_install_room_requires_a_target(tmp_path):
     with pytest.raises(TypeError):
         rooms.install_room(
@@ -545,39 +512,6 @@ def test_install_room_requires_room_id(tmp_path):
         )
 
 
-def test_install_room_rejects_positional_with_keyword_room_id(tmp_path):
-    project = _make_stack(tmp_path)
-
-    with (
-        pytest.warns(
-            DeprecationWarning,
-            match=rooms.INSTALL_ROOM_POS_ARGS_DEPRECATION,
-        ),
-        pytest.raises(TypeError),
-    ):
-        rooms.install_room(
-            project,
-            room_id="handbook",
-            config_text=X_ID_YAML,
-            parent_path="./rooms",
-        )
-
-
-def test_install_room_rejects_incomplete_positional_pair(tmp_path):
-    project = _make_stack(tmp_path)
-
-    with (
-        pytest.warns(
-            DeprecationWarning,
-            match=rooms.INSTALL_ROOM_POS_ARGS_DEPRECATION,
-        ),
-        pytest.raises(TypeError),
-    ):
-        rooms.install_room(
-            project, config_text=X_ID_YAML, parent_path="./rooms"
-        )
-
-
 def test_install_room_from_requires_src_dir(tmp_path):
     project = _make_stack(tmp_path)
 
@@ -585,32 +519,3 @@ def test_install_room_from_requires_src_dir(tmp_path):
         rooms.install_room_from(
             project=project, room_id="handbook", parent_path="./rooms"
         )
-
-
-def test_install_room_from_rejects_positional_and_keyword_src_dir(tmp_path):
-    project = _make_stack(tmp_path)
-    src = _src_room(tmp_path)
-
-    with (
-        pytest.warns(
-            DeprecationWarning,
-            match=rooms.INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION,
-        ),
-        pytest.raises(TypeError),
-    ):
-        rooms.install_room_from(
-            project, "handbook", src, src_dir=src, parent_path="./rooms"
-        )
-
-
-def test_install_room_from_rejects_incomplete_positional_form(tmp_path):
-    project = _make_stack(tmp_path)
-
-    with (
-        pytest.warns(
-            DeprecationWarning,
-            match=rooms.INSTALL_ROOM_FROM_POS_ARGS_DEPRECATION,
-        ),
-        pytest.raises(TypeError),
-    ):
-        rooms.install_room_from(project, "handbook", parent_path="./rooms")
