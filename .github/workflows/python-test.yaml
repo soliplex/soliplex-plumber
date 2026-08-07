@@ -49,18 +49,27 @@ jobs:
         run: uv sync --frozen --group dev
 
       - name: Run unit tests with coverage
-        run: uv run pytest ${{ matrix.pytest-args }}
+        run: |
+          set -o pipefail
+          uv run pytest ${{ matrix.pytest-args }} 2>&1 | tee unit-tests.log
 
-      - name: Notify Slack on failure
+      # Slack notification lives in 'ci-failure-notify.yaml', which only
+      # links to this run (see #23), so record what failed here.
+      - name: Summarize failures
         if: failure()
-        uses: slackapi/slack-github-action@v3
-        with:
-          webhook: ${{ secrets.SLACK_NOTIFY_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            {
-              "channel": "#soliplex",
-              "username": "soliplex",
-              "text": ":x: ${{ github.workflow }} failed on ${{ github.head_ref }}:\n${{ github.event.head_commit.message }}\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
-              "icon_emoji": ":ghost:"
-            }
+        run: |
+          {
+            echo "## Python ${{ matrix.python-version }} failed"
+            echo
+            for log in unit-tests.log; do
+              [ -f "$log" ] || continue
+              echo "<details><summary>$log (last 50 lines)</summary>"
+              echo
+              echo '```'
+              tail -n 50 "$log"
+              echo '```'
+              echo
+              echo "</details>"
+              echo
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
