@@ -37,6 +37,7 @@ import dataclasses
 import pathlib
 import re
 import shutil
+import warnings
 
 from soliplex_plumber import installation
 from soliplex_plumber import sections
@@ -48,6 +49,11 @@ ROOM_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 # Placeholder when the stack's own package can't be inferred (no 'src/<pkg>/');
 # the '<pkg>.tools.greeting' demo tool in the skill templates references it.
 DEFAULT_PACKAGE_NAME = "your_package"
+# The files 'resolve_package_name' keys on under '<project>/src/': a project
+# directory is the one with a 'pyproject.toml'; the package the generator
+# scaffolds is the one with a 'tools.py' (authored from the skill template).
+PROJECT_MARKER = "pyproject.toml"
+TOOLS_MARKER = "tools.py"
 # Written into the room dir when a prompt file is supplied; the config then
 # points its system_prompt at this file (the 'search' demo room uses the form).
 PROMPT_FILE_NAME = "prompt.txt"
@@ -151,8 +157,50 @@ def resolve_project(project_dir: str) -> pathlib.Path:
     return project
 
 
+def _nested_package(child: pathlib.Path) -> bool:
+    """Is ``child`` a project directory wrapping its own like-named package?
+
+    The current generated layout: ``<project>/src/`` holds *project*
+    directories -- ours alongside any sibling checkouts (dev-mode clones the
+    ``soliplex`` repo there) -- so ours is the one that is both a project
+    (a ``pyproject.toml``) and the home of a package named after it.
+    """
+    return (child / PROJECT_MARKER).is_file() and (
+        child / "src" / child.name / TOOLS_MARKER
+    ).is_file()
+
+
+def _bare_package(child: pathlib.Path) -> bool:
+    """Is ``child`` a package directory scaffolded straight under ``src/``?
+
+    The legacy generated layout: ``<project>/src/<pkg>/tools.py``, with the
+    stack root doubling as that package's project directory.
+    """
+    return (child / TOOLS_MARKER).is_file()
+
+
+# Raised against a stack still on the pre-'src/<project>/' layout, naming the
+# move that silences it (soliplex-template#176 restructures the generator).
+_LEGACY_LAYOUT_MESSAGE = (
+    "inferred the package {name!r} from the legacy layout "
+    "'src/{name}/{tools}', which is deprecated: restructure the stack so "
+    "that 'src/' holds project directories -- move the package to "
+    "'src/{name}/src/{name}/{tools}' and the stack's 'tests/' to "
+    "'src/{name}/tests/', with their own '{project}' beside them. "
+    "Support for this layout style will be removed after "
+    "'soliplex-plumber v0.6'."
+)
+
+
+def _sole_match(children: list[pathlib.Path], probe) -> str | None:
+    """The name of the one child ``probe`` matches, else ``None``."""
+    matches = [child.name for child in children if probe(child)]
+
+    return matches[0] if len(matches) == 1 else None
+
+
 def resolve_package_name(project: pathlib.Path, override: str | None) -> str:
-    """Return he stack's own package,  or a placeholder.
+    """Return the stack's own package, or a placeholder.
 
     Used e.g. to render the dotted name of the ``<pkg>.tools.greeting`` tool.
 
@@ -160,8 +208,14 @@ def resolve_package_name(project: pathlib.Path, override: str | None) -> str:
 
     - explicit ``override``
 
-    - the single package under ``<project>/src/`` containing ``tools.py``,
-      as the generator would scaffold it.
+    - the single project directory under ``<project>/src/`` holding both a
+      ``pyproject.toml`` and its own ``src/<name>/tools.py``, as the
+      generator scaffolds it.
+
+    - the single package directly under ``<project>/src/`` containing
+      ``tools.py``, as the generator scaffolded the legacy layout. Resolving
+      this way emits a ``DeprecationWarning`` naming the restructuring that
+      silences it.
 
     - ``DEFAULT_PACKAGE_NAME`` for the operator to edit.
     """
@@ -171,13 +225,24 @@ def resolve_package_name(project: pathlib.Path, override: str | None) -> str:
     src = project / "src"
 
     if src.is_dir():
-        packages = [
-            child.name
-            for child in sorted(src.iterdir())
-            if child.is_dir() and (child / "tools.py").is_file()
-        ]
-        if len(packages) == 1:
-            return packages[0]
+        children = [child for child in sorted(src.iterdir()) if child.is_dir()]
+
+        # Sharpest first: the bare shape is consulted only once the current
+        # (project-directory) shape has failed to name exactly one package.
+        name = _sole_match(children, _nested_package)
+        if name is not None:
+            return name
+
+        name = _sole_match(children, _bare_package)
+        if name is not None:
+            warnings.warn(
+                _LEGACY_LAYOUT_MESSAGE.format(
+                    name=name, tools=TOOLS_MARKER, project=PROJECT_MARKER
+                ),
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return name
 
     return DEFAULT_PACKAGE_NAME
 

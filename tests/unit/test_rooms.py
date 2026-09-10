@@ -6,9 +6,14 @@ Docker/network. AAA layout, single act per test.
 
 from __future__ import annotations
 
+import warnings
+
 import pytest
 
 from soliplex_plumber import rooms
+
+# The 'src/<pkg>/tools.py' inference, which is on its way out.
+LEGACY_WARNING = r"legacy layout 'src/mypkg/tools\.py'"
 
 
 def _just_id_yaml(id_):
@@ -87,6 +92,35 @@ def _read_text(path):
     return path.read_text().rstrip()
 
 
+def _make_src_package(root, name):
+    """Write '<root>/src/<name>/tools.py' -- a package under a 'src/' dir.
+
+    Called with the stack itself for the legacy layout (the stack root holds
+    the 'pyproject.toml'), and with a project directory for the current one.
+    """
+    package = root / "src" / name
+    package.mkdir(parents=True)
+    _write_text(package / "tools.py", "def greeting(): ...")
+    return package
+
+
+def _make_project_dir(project, name, *, pyproject=True):
+    """A project directory under 'src/' wrapping its like-named package."""
+    project_dir = project / "src" / name
+    _make_src_package(project_dir, name)
+    if pyproject:
+        _write_text(project_dir / "pyproject.toml", f'name = "{name}"')
+    return project_dir
+
+
+def _make_checkout_dir(project, name):
+    """A sibling checkout under 'src/': a project, but with no tools.py."""
+    checkout = project / "src" / name
+    (checkout / "src" / name).mkdir(parents=True)
+    _write_text(checkout / "pyproject.toml", f'name = "{name}"')
+    return checkout
+
+
 def _src_room(tmp_path, *, id="src", prompt="Hi."):
     """A source room template dir (room_config.yaml + prompt.txt) to copy."""
     src = tmp_path / "template"
@@ -143,16 +177,67 @@ def test_resolve_package_name_override(tmp_path):
     assert result == "acme_pkg"
 
 
-def test_resolve_package_name_from_src(tmp_path):
+def test_resolve_package_name_from_nested_project(tmp_path):
     project = _make_stack(tmp_path)
-    (project / "src" / "mypkg").mkdir(parents=True)
-    _write_text(project / "src" / "mypkg" / "tools.py", "def greeting(): ...")
-    (project / "src" / "notpkg").mkdir()  # excluded: no tools.py
+    _make_project_dir(project, "mypkg")
+    _make_checkout_dir(project, "soliplex")  # excluded: no own tools.py
+    _make_project_dir(project, "nopyproject", pyproject=False)
     (project / "src" / "stray.txt").write_text("x")  # excluded: not a dir
 
     result = rooms.resolve_package_name(project, None)
 
     assert result == "mypkg"
+
+
+def test_resolve_package_name_nested_projects_ambiguous(tmp_path):
+    project = _make_stack(tmp_path)
+    _make_project_dir(project, "mypkg")
+    _make_project_dir(project, "otherpkg")
+
+    result = rooms.resolve_package_name(project, None)
+
+    assert result == rooms.DEFAULT_PACKAGE_NAME
+
+
+def test_resolve_package_name_legacy_from_src(tmp_path):
+    project = _make_stack(tmp_path)
+    _make_src_package(project, "mypkg")
+    (project / "src" / "notpkg").mkdir()  # excluded: no tools.py
+    (project / "src" / "stray.txt").write_text("x")  # excluded: not a dir
+
+    with pytest.warns(DeprecationWarning, match=LEGACY_WARNING) as caught:
+        result = rooms.resolve_package_name(project, None)
+
+    assert result == "mypkg"
+    message = str(caught[0].message)
+    assert "'src/mypkg/tools.py', which is deprecated" in message
+    assert "'src/mypkg/src/mypkg/tools.py'" in message
+    assert "'src/mypkg/tests/'" in message
+    assert "'pyproject.toml'" in message
+    assert "removed after 'soliplex-plumber v0.6'" in message
+
+
+def test_resolve_package_name_legacy_beside_checkout(tmp_path):
+    project = _make_stack(tmp_path)
+    _make_src_package(project, "mypkg")
+    _make_checkout_dir(project, "soliplex")  # excluded: no own tools.py
+
+    with pytest.warns(DeprecationWarning, match=LEGACY_WARNING):
+        result = rooms.resolve_package_name(project, None)
+
+    assert result == "mypkg"
+
+
+def test_resolve_package_name_legacy_ambiguous_does_not_warn(tmp_path):
+    project = _make_stack(tmp_path)
+    _make_src_package(project, "mypkg")
+    _make_src_package(project, "otherpkg")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        result = rooms.resolve_package_name(project, None)
+
+    assert result == rooms.DEFAULT_PACKAGE_NAME
 
 
 def test_resolve_package_name_src_without_package(tmp_path):
