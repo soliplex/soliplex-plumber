@@ -629,7 +629,7 @@ non-default parent is added).</p>
 </tr>
 <tr>
 <td><code>resolve_package_name(project, override)</code></td>
-<td>the stack's own package (inferred from <code>src/&lt;pkg&gt;/tools.py</code>) or <code>DEFAULT_PACKAGE_NAME</code></td>
+<td>the stack's own package (inferred from <code>src/&lt;pkg&gt;/src/&lt;pkg&gt;/tools.py</code>, falling back to the legacy <code>src/&lt;pkg&gt;/tools.py</code> with a <code>DeprecationWarning</code>, to be removed after v0.6) or <code>DEFAULT_PACKAGE_NAME</code></td>
 </tr>
 <tr>
 <td><code>room_parent_candidates(project)</code></td>
