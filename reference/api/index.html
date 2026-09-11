@@ -16,7 +16,7 @@
         <link rel="canonical" href="https://soliplex.github.io/soliplex-plumber/reference/api/">
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../../usage/sections/">
       
       
       
@@ -254,6 +254,223 @@
   
 
       </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../usage/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How-to guides
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  How-to guides
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/rooms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Install a room
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Edit installation.yaml
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/stack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Run soliplex-cli
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/soliplex-config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Query a running stack
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/sections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The section catalog
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -518,6 +735,11 @@ and covered by the test suite (100% branch coverage); the modules under
 submodule and uses its members by dotted name</strong> (e.g. <code>from soliplex_plumber
 import rooms</code> then <code>rooms.install_room(...)</code>).</p>
 <h2 id="sections-the-installationyaml-section-catalog"><code>sections</code> — the installation.yaml section catalog<a class="headerlink" href="#sections-the-installationyaml-section-catalog" title="Permanent link">&para;</a></h2>
+<div class="admonition tip">
+<p class="admonition-title">How-to</p>
+<p><a href="../../usage/sections/">The section catalog</a> — why an absent section is
+not an empty one, and the stack-structure constants.</p>
+</div>
 <p>Declarative facts about each editable <code>installation.yaml</code> section, mirroring the
 defaults the backend applies in <code>soliplex.config.installation</code> (the source of
 truth). The editors consult it to decide an absent section's behavior.</p>
@@ -553,6 +775,11 @@ section is absent; <strong>collection</strong> sections default to empty, so an 
 is <em>created</em> to add an entry; <strong>whitelist</strong> (<code>skill_configs</code>) is permissive per
 <code>kind</code> — empty/absent for a kind enables every discovered skill of it.</p>
 <h2 id="installation-edit-a-stacks-installationyaml"><code>installation</code> — edit a stack's <code>installation.yaml</code><a class="headerlink" href="#installation-edit-a-stacks-installationyaml" title="Permanent link">&para;</a></h2>
+<div class="admonition tip">
+<p class="admonition-title">How-to</p>
+<p><a href="../../usage/installation/">Edit <code>installation.yaml</code></a> — the read / edit /
+write loop, the named helpers, and composing several edits.</p>
+</div>
 <p>Generic, comment-preserving, idempotent, stdlib-only line editors. Each is a
 pure <code>text -&gt; (new_text, TargetAction)</code> function. Scanning is <strong>section-scoped</strong>
 and <strong>comment-skipping</strong>.</p>
@@ -607,6 +834,11 @@ and <strong>comment-skipping</strong>.</p>
 </tbody>
 </table>
 <h2 id="rooms-install-a-room-into-a-soliplex-stack"><code>rooms</code> — install a room into a Soliplex stack<a class="headerlink" href="#rooms-install-a-room-into-a-soliplex-stack" title="Permanent link">&para;</a></h2>
+<div class="admonition tip">
+<p class="admonition-title">How-to</p>
+<p><a href="../../usage/rooms/">Install a room</a> — rendering vs. copying a room,
+choosing a parent, rehearsing against a scratch copy.</p>
+</div>
 <p>Writes a room under an explicit <code>parent_path</code> (relative to the installation
 config) and wires its <code>room_paths</code> entry line-based. Append-only: installing a
 room never disables another (the <code>./rooms</code> default is materialized before any
@@ -636,11 +868,11 @@ non-default parent is added).</p>
 <td>the <code>room_paths</code> container entries a caller can offer as a <code>parent_path</code> (or <code>["./rooms"]</code> when absent)</td>
 </tr>
 <tr>
-<td><code>install_room(project, room_id, *, config_text, prompt_text=None, parent_path, force=False, dry_run=False)</code></td>
+<td><code>install_room(*, project=None, room_id=None, environment=None, config_text, prompt_text=None, parent_path, force=False, dry_run=False)</code></td>
 <td>write the room dir from a rendered <code>config_text</code> (+ optional prompt) under <code>parent_path</code> and wire <code>room_paths</code></td>
 </tr>
 <tr>
-<td><code>install_room_from(project, room_id, src_dir, *, parent_path, force=False, dry_run=False)</code></td>
+<td><code>install_room_from(*, project=None, room_id=None, src_dir=None, environment=None, parent_path, force=False, dry_run=False)</code></td>
 <td>the same, but <em>copy</em> the <code>src_dir</code> template tree (multi-file); the caller patches the copied files afterward</td>
 </tr>
 <tr>
@@ -672,6 +904,18 @@ non-default parent is added).</p>
 <td>Allows users to catch this error specifically</td>
 </tr>
 <tr>
+<td><code>InstallArgError(TypeError)</code></td>
+<td>base class for a bad <code>install_room*</code> argument combination (a programmer error, not a user-facing one)</td>
+</tr>
+<tr>
+<td><code>AmbiguousTarget(InstallArgError)</code></td>
+<td>neither or both of <code>project=</code> / <code>environment=</code> were passed</td>
+</tr>
+<tr>
+<td><code>RequiredArgument(InstallArgError)</code></td>
+<td>a required keyword (<code>room_id</code>, <code>src_dir</code>) was omitted</td>
+</tr>
+<tr>
 <td><code>ADDED</code> / <code>UNCHANGED</code> / <code>COVERED</code></td>
 <td>the <code>installation.TargetAction</code> members, re-exported</td>
 </tr>
@@ -682,6 +926,11 @@ non-default parent is added).</p>
 </tbody>
 </table>
 <h2 id="stack-run-soliplex-cli-against-a-stack-in-a-throwaway-container"><code>stack</code> — run <code>soliplex-cli</code> against a stack in a throwaway container<a class="headerlink" href="#stack-run-soliplex-cli-against-a-stack-in-a-throwaway-container" title="Permanent link">&para;</a></h2>
+<div class="admonition tip">
+<p class="admonition-title">How-to</p>
+<p><a href="../../usage/stack/">Run <code>soliplex-cli</code></a> — capture vs. stream, the live and
+scratch environments, wiring the options into your own CLI.</p>
+</div>
 <p>The shared plumbing for talking to a <em>running</em> stack. <code>soliplex-cli</code> ships only
 inside the backend image, so this spins up a one-off <code>docker compose run --rm</code>
 container pointed at a stack directory and runs the requested command — the
@@ -750,6 +999,11 @@ feed these calls via <code>add_arguments</code>.</p>
 </tbody>
 </table>
 <h2 id="soliplex_config-query-a-running-stacks-resolved-installation-config"><code>soliplex_config</code> — query a running stack's resolved installation config<a class="headerlink" href="#soliplex_config-query-a-running-stacks-resolved-installation-config" title="Permanent link">&para;</a></h2>
+<div class="admonition tip">
+<p class="admonition-title">How-to</p>
+<p><a href="../../usage/soliplex-config/">Query a running stack</a> — the four
+subcommands, and using the parse / navigate / render helpers as a library.</p>
+</div>
 <p>Builds on <code>stack</code>: runs <code>soliplex-cli config &lt;installation&gt;</code> (via
 <code>stack.run_cli</code>) and parses the resolved-config YAML. It installs the
 <strong><code>soliplex-config</code></strong> console script (<code>run</code> wraps <code>main</code> with the user-facing
@@ -853,7 +1107,7 @@ helpers honor the resolved <code>room_paths</code>, mapping each back through th
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../.." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home">
+          <a href="../../usage/sections/" class="md-footer__link md-footer__link--prev" aria-label="Previous: The section catalog">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -863,7 +1117,7 @@ helpers honor the resolved <code>room_paths</code>, mapping each back through th
                 Previous
               </span>
               <div class="md-ellipsis">
-                Home
+                The section catalog
               </div>
             </div>
           </a>

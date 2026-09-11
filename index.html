@@ -17,7 +17,7 @@
       
       
       
-        <link rel="next" href="./reference/api/">
+        <link rel="next" href="./usage/">
       
       
         
@@ -322,6 +322,223 @@
   
   
   
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="./usage/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How-to guides
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  How-to guides
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./usage/rooms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Install a room
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./usage/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Edit installation.yaml
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./usage/stack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Run soliplex-cli
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./usage/soliplex-config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Query a running stack
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./usage/sections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  The section catalog
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="./reference/api/" class="md-nav__link">
         
@@ -437,24 +654,36 @@ exception: it queries a <em>running</em> stack, so it needs Docker.</p>
 <li><strong><code>rooms</code></strong> -- generic, template-agnostic logic for adding a room to a stack:
   resolve and validate the stack root, infer its package, and ensure
   <code>installation.yaml</code>'s <code>room_paths</code> loads the room (editing line-based, so
-  comments and layout are preserved). See the
-  <a href="reference/api/">API reference</a>.</li>
+  comments and layout are preserved). See <a href="usage/rooms/">Install a room</a>.</li>
+<li><strong><code>installation</code></strong> -- the section-aware, comment-preserving
+  <code>installation.yaml</code> editors (secrets, environment variables, tool configs,
+  skills), and <strong><code>sections</code></strong>, the catalog of section defaults they consult.
+  See <a href="usage/installation/">Edit <code>installation.yaml</code></a> and
+  <a href="usage/sections/">The section catalog</a>.</li>
 <li><strong><code>stack</code></strong> -- shared plumbing to run <code>soliplex-cli</code> against a stack in a
   throwaway <code>docker compose run --rm</code> container (validate the stack, build the
   argv, capture or stream output), optionally binding an alternative
-  installation tree to dry-run against. Needs Docker.</li>
+  installation tree to dry-run against. Needs Docker. See
+  <a href="usage/stack/">Run <code>soliplex-cli</code></a>.</li>
 <li><strong><code>soliplex_config</code></strong> -- query a <em>running</em> stack's resolved installation
   config via <code>soliplex-cli config</code> in a one-off backend container (<code>show</code> /
   <code>get</code> / <code>rooms</code> / <code>room</code>); installs the <code>soliplex-config</code> console script.
-  Builds on <code>stack</code>.</li>
+  Builds on <code>stack</code>. See <a href="usage/soliplex-config/">Query a running stack</a>.</li>
 </ul>
 <p>There is no re-exporting package <code>__init__</code>; client code imports the submodule
 and uses its members by dotted name:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">soliplex_plumber</span><span class="w"> </span><span class="kn">import</span> <span class="n">rooms</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">project</span> <span class="o">=</span> <span class="n">rooms</span><span class="o">.</span><span class="n">resolve_project</span><span class="p">(</span><span class="s2">&quot;/path/to/stack&quot;</span><span class="p">)</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">installed</span> <span class="o">=</span> <span class="n">rooms</span><span class="o">.</span><span class="n">install_room</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="s2">&quot;handbook&quot;</span><span class="p">,</span> <span class="n">config_text</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">installed</span> <span class="o">=</span> <span class="n">rooms</span><span class="o">.</span><span class="n">install_room</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">project</span><span class="o">=</span><span class="n">project</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">room_id</span><span class="o">=</span><span class="s2">&quot;handbook&quot;</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">config_text</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">parent_path</span><span class="o">=</span><span class="s2">&quot;./rooms&quot;</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
 </span></code></pre></div>
+<p>Start with the <a href="usage/">how-to guides</a> for worked examples of each
+module, or the <a href="reference/api/">API reference</a> for the member-by-member list.</p>
 
 
 
@@ -495,13 +724,13 @@ and uses its members by dotted name:</p>
         
         
           
-          <a href="./reference/api/" class="md-footer__link md-footer__link--next" aria-label="Next: API reference">
+          <a href="./usage/" class="md-footer__link md-footer__link--next" aria-label="Next: How-to guides">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                API reference
+                How-to guides
               </div>
             </div>
             <div class="md-footer__button md-icon">
