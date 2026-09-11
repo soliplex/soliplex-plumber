@@ -27,6 +27,14 @@ dev_addr = "127.0.0.1:8005"
 # Reference: https://zensical.org/docs/setup/navigation/
 nav = [
     { "Home" = "index.md" },
+    { "How-to guides" = [
+        "usage/index.md",
+        "usage/rooms.md",
+        "usage/installation.md",
+        "usage/stack.md",
+        "usage/soliplex-config.md",
+        "usage/sections.md",
+    ] },
     { "API reference" = "reference/api.md" },
 ]
 

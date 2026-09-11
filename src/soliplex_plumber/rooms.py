@@ -453,11 +453,6 @@ def install_room(
     Writ ``prompt_text``, if given, to ``<parent_path>/<room_id>/prompt.txt``.
 
     If ``dry_run`` is True, compute the outcome but write nothing.
-
-    .. note::
-
-       The legacy ``install_room(project, room_id, ...)`` positional form
-       still works but is deprecated -- prefer the keywords.
     """
 
     def _write(room_dir: pathlib.Path) -> None:
@@ -498,11 +493,6 @@ def install_room_from(
     the returned ``config_path``.
 
     If ``dry_run`` is True, compute the outcome but write nothing.
-
-    .. note::
-
-        The legacy ``install_room_from(project, room_id, src_dir, ...)``
-        positional form still works but is deprecated -- prefer the keywords.
     """
     if src_dir is None:
         raise RequiredArgument("src_dir")
