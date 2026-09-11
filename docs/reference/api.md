@@ -11,6 +11,10 @@ import rooms` then `rooms.install_room(...)`).
 
 ## `sections` — the installation.yaml section catalog
 
+!!! tip "How-to"
+    [The section catalog](../usage/sections.md) — why an absent section is
+    not an empty one, and the stack-structure constants.
+
 Declarative facts about each editable `installation.yaml` section, mirroring the
 defaults the backend applies in `soliplex.config.installation` (the source of
 truth). The editors consult it to decide an absent section's behavior.
@@ -29,6 +33,10 @@ is *created* to add an entry; **whitelist** (`skill_configs`) is permissive per
 `kind` — empty/absent for a kind enables every discovered skill of it.
 
 ## `installation` — edit a stack's `installation.yaml`
+
+!!! tip "How-to"
+    [Edit `installation.yaml`](../usage/installation.md) — the read / edit /
+    write loop, the named helpers, and composing several edits.
 
 Generic, comment-preserving, idempotent, stdlib-only line editors. Each is a
 pure `text -> (new_text, TargetAction)` function. Scanning is **section-scoped**
@@ -49,6 +57,10 @@ and **comment-skipping**.
 
 ## `rooms` — install a room into a Soliplex stack
 
+!!! tip "How-to"
+    [Install a room](../usage/rooms.md) — rendering vs. copying a room,
+    choosing a parent, rehearsing against a scratch copy.
+
 Writes a room under an explicit `parent_path` (relative to the installation
 config) and wires its `room_paths` entry line-based. Append-only: installing a
 room never disables another (the `./rooms` default is materialized before any
@@ -60,8 +72,8 @@ non-default parent is added).
 | `resolve_project(project_dir)` | resolve + verify the stack root (has `COMPOSE_FILE` and `INSTALLATION_FILE`) |
 | `resolve_package_name(project, override)` | the stack's own package (inferred from `src/<pkg>/src/<pkg>/tools.py`, falling back to the legacy `src/<pkg>/tools.py` with a `DeprecationWarning`, to be removed after v0.6) or `DEFAULT_PACKAGE_NAME` |
 | `room_parent_candidates(project)` | the `room_paths` container entries a caller can offer as a `parent_path` (or `["./rooms"]` when absent) |
-| `install_room(project, room_id, *, config_text, prompt_text=None, parent_path, force=False, dry_run=False)` | write the room dir from a rendered `config_text` (+ optional prompt) under `parent_path` and wire `room_paths` |
-| `install_room_from(project, room_id, src_dir, *, parent_path, force=False, dry_run=False)` | the same, but *copy* the `src_dir` template tree (multi-file); the caller patches the copied files afterward |
+| `install_room(*, project=None, room_id=None, environment=None, config_text, prompt_text=None, parent_path, force=False, dry_run=False)` | write the room dir from a rendered `config_text` (+ optional prompt) under `parent_path` and wire `room_paths` |
+| `install_room_from(*, project=None, room_id=None, src_dir=None, environment=None, parent_path, force=False, dry_run=False)` | the same, but *copy* the `src_dir` template tree (multi-file); the caller patches the copied files afterward |
 | `RoomInstalled(config_path, path_action)` | the install outcome (alias `RoomInstall` kept for back-compat) |
 | `AddRoomError` | base class for user-facing errors |
 | `ComposeNotFound(AddRoomError)` | No `docker-compose.yaml` found |
@@ -69,10 +81,17 @@ non-default parent is added).
 | `BadRoomId(AddRoomError)` | invalid room ID syntac |
 | `ParentIsRoom(AddRoomError)` | room directory exists |
 | `RoomExists(AddRoomError)` | Allows users to catch this error specifically |
+| `InstallArgError(TypeError)` | base class for a bad `install_room*` argument combination (a programmer error, not a user-facing one) |
+| `AmbiguousTarget(InstallArgError)` | neither or both of `project=` / `environment=` were passed |
+| `RequiredArgument(InstallArgError)` | a required keyword (`room_id`, `src_dir`) was omitted |
 | `ADDED` / `UNCHANGED` / `COVERED` | the `installation.TargetAction` members, re-exported |
 | `ROOMS_PARENT_ENTRY` | the `./rooms` default-discovery container |
 
 ## `stack` — run `soliplex-cli` against a stack in a throwaway container
+
+!!! tip "How-to"
+    [Run `soliplex-cli`](../usage/stack.md) — capture vs. stream, the live and
+    scratch environments, wiring the options into your own CLI.
 
 The shared plumbing for talking to a *running* stack. `soliplex-cli` ships only
 inside the backend image, so this spins up a one-off `docker compose run --rm`
@@ -104,6 +123,10 @@ feed these calls via `add_arguments`.
 | `DockerMissing` / `ComposeNotFound` | the specific failure modes |
 
 ## `soliplex_config` — query a running stack's resolved installation config
+
+!!! tip "How-to"
+    [Query a running stack](../usage/soliplex-config.md) — the four
+    subcommands, and using the parse / navigate / render helpers as a library.
 
 Builds on `stack`: runs `soliplex-cli config <installation>` (via
 `stack.run_cli`) and parses the resolved-config YAML. It installs the

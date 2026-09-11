@@ -28,7 +28,12 @@ The core does pure filesystem work: no Docker, no running backend. The
 from soliplex_plumber import rooms
 
 project = rooms.resolve_project("/path/to/stack")
-installed = rooms.install_room(project, "handbook", config_text=cfg)
+installed = rooms.install_room(
+    project=project,
+    room_id="handbook",
+    config_text=cfg,
+    parent_path="./rooms",
+)
 ```
 
 Full documentation: <https://soliplex.github.io/soliplex-plumber/>
