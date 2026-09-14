@@ -40,9 +40,7 @@ dev = [
     "pymarkdownlnt",
     "pytest",
     "pytest-cov",
-    # Pinned to match the ruff-pre-commit hook rev in .pre-commit-config.yaml,
-    # so `uv run ruff format` and the commit hook never disagree.
-    "ruff==0.15.10",
+    "ruff >= 0.16.6, < 0.17",
 ]
 docs = [
     "zensical",
@@ -62,13 +60,12 @@ addopts = "--cov=soliplex_plumber --cov=tests/unit --cov-branch --cov-fail-under
 [tool.coverage.report]
 show_missing = true
 
-# Linting configuration imported from ../soliplex-skills/pyproject.toml.
-# (target-version set to py312 to match this repo's requires-python.)
 [tool.ruff]
 line-length = 79
 exclude = [
+    "*.md",  # ruff 0.16 formats Python in Markdown fences
 ]
-target-version = "py312"
+force-exclude = true
 
 [tool.ruff.lint]
 select = [
