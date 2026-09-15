@@ -887,20 +887,43 @@ subcommands, from coarsest to finest. Each takes the
 <code>--host-environment</code>).</p>
 <h3 id="show-the-whole-resolved-config"><code>show</code> — the whole resolved config<a class="headerlink" href="#show-the-whole-resolved-config" title="Permanent link">&para;</a></h3>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>show<span class="w"> </span>--project-dir<span class="w"> </span>/srv/stacks/acme-widgets
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">#</span>------------------------------------------------------------------------------
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp"># </span>Source:<span class="w"> </span>/environment
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">#</span>------------------------------------------------------------------------------
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go">id: acme-widgets</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">server_name: Acme Widgets</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go">server_description: Internal assistants for Acme Widgets.</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="go">meta:</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="go">  tool_configs:</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go">  - acme_widgets.tools.WidgetTools</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go">secrets:</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="go">- secret_name: GITEA_TOKEN</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="go">  sources:</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="go">  - kind: env_var</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="go">    env_var_name: GITEA_TOKEN</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="go">environment:</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="go">  OLLAMA_BASE_URL: http://ollama:11434</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="go">room_paths:</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="go">- /environment/rooms/handbook</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="go">- /environment/shared/policy-bot</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="gp"># </span>...<span class="w"> </span>and<span class="w"> </span>the<span class="w"> </span>remaining<span class="w"> </span>keys<span class="w"> </span><span class="o">(</span>agent_configs,<span class="w"> </span>oidc_paths,<span class="w"> </span>quizzes_paths,<span class="w"> </span>...<span class="o">)</span>
 </span></code></pre></div>
 <p>The faithful <code>soliplex-cli config</code> output, banner comments and all. Start here
 when you do not yet know which key you want.</p>
 <h3 id="get-one-value-by-dotted-path"><code>get</code> — one value by dotted path<a class="headerlink" href="#get-one-value-by-dotted-path" title="Permanent link">&para;</a></h3>
 <p>Each <code>.</code>-separated segment indexes a mapping by name or a sequence by position:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>get<span class="w"> </span>installation.name
+<div class="language-console highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>get<span class="w"> </span>server_name
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">Acme Widgets</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>get<span class="w"> </span>room_paths
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">/environment/rooms/handbook</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">/environment/shared/policy-bot</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>get<span class="w"> </span>room_paths.0
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">/environment/rooms/handbook</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>get<span class="w"> </span>meta.tool_configs
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">acme_widgets.tools.WidgetTools</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>get<span class="w"> </span>room_paths
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="go">/environment/rooms/handbook</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">/environment/shared/policy-bot</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>get<span class="w"> </span>room_paths.0
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="go">/environment/rooms/handbook</span>
 </span></code></pre></div>
 <p>The default <code>plain</code> format is shell-friendly: a scalar prints bare, and a list
 of scalars prints one per line, so <code>get room_paths</code> pipes straight into a
@@ -938,6 +961,11 @@ mapped to a host file; those are reported on stderr and skipped rather than
 silently dropped.</p>
 <h3 id="room-one-rooms-config-verbatim"><code>room</code> — one room's config, verbatim<a class="headerlink" href="#room-one-rooms-config-verbatim" title="Permanent link">&para;</a></h3>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>room<span class="w"> </span>handbook
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="gp"># </span>The<span class="w"> </span>handbook<span class="w"> </span>room:<span class="w"> </span>answers<span class="w"> </span>from<span class="w"> </span>the<span class="w"> </span>handbook<span class="w"> </span>RAG<span class="w"> </span>database<span class="w"> </span>only.
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">id: handbook</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">name: Handbook</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">description: Answers questions about the employee handbook.</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">system_prompt: &quot;file:prompt.txt&quot;</span>
 </span></code></pre></div>
 <p>Prints the full <code>room_config.yaml</code> of the loaded room with that id — comments
 and all, because it is the file, not a re-dump. Errors with <code>RoomNotFound</code> if
@@ -947,7 +975,18 @@ no loaded room has that id.</p>
 path, so you can resolve a tree the stack is not actually deployed with. That
 is how you check an edit before shipping it:</p>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span>soliplex-config<span class="w"> </span>rooms<span class="w"> </span>--host-environment<span class="w"> </span>alt
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">- room_id: handbook</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">  name: Handbook</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">  description: Answers questions about the employee handbook.</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">- room_id: policy-bot</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go">  name: Policy Bot</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="go">  description: null</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="go">- room_id: onboarding</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="go">  name: Onboarding</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="go">  description: null</span>
 </span></code></pre></div>
+<p>The <code>onboarding</code> room is the edit under test: it exists in the <code>alt</code> tree, and
+not yet in the one the stack is deployed with.</p>
 <h2 id="use-it-as-a-library">Use it as a library<a class="headerlink" href="#use-it-as-a-library" title="Permanent link">&para;</a></h2>
 <p>The subcommands are thin wrappers over functions you can call directly. The
 parse/navigate/render trio works on captured output and needs no Docker of its

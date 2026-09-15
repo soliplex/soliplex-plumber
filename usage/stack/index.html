@@ -965,6 +965,9 @@ to inspect rather than an error.</p>
 <p>Long lines are a hazard when parsing: the container is run with
 <code>COLUMNS=10000</code> (<code>stack.WIDE_COLUMNS</code>) so that <code>rich</code>-formatted output does not
 wrap. Override it with <code>columns=</code> if you actually want terminal-width output.</p>
+<p>The container's output is decoded as UTF-8, not in the host locale encoding.
+On a Windows host that fallback is <code>cp1252</code>, which would mangle a non-ASCII
+room name on its way back out of <code>soliplex-cli</code>.</p>
 <h2 id="see-the-command-without-running-it">See the command without running it<a class="headerlink" href="#see-the-command-without-running-it" title="Permanent link">&para;</a></h2>
 <p><code>cli_command</code> builds the argv that <code>run_cli</code> would execute. It touches nothing
 and needs no Docker, which makes it the thing to print in a <code>--dry-run</code> mode or
