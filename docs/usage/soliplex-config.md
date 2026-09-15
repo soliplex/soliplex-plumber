@@ -23,6 +23,26 @@ subcommands, from coarsest to finest. Each takes the
 
 ```console
 $ soliplex-config show --project-dir /srv/stacks/acme-widgets
+#------------------------------------------------------------------------------
+# Source: /environment
+#------------------------------------------------------------------------------
+id: acme-widgets
+server_name: Acme Widgets
+server_description: Internal assistants for Acme Widgets.
+meta:
+  tool_configs:
+  - acme_widgets.tools.WidgetTools
+secrets:
+- secret_name: GITEA_TOKEN
+  sources:
+  - kind: env_var
+    env_var_name: GITEA_TOKEN
+environment:
+  OLLAMA_BASE_URL: http://ollama:11434
+room_paths:
+- /environment/rooms/handbook
+- /environment/shared/policy-bot
+# ... and the remaining keys (agent_configs, oidc_paths, quizzes_paths, ...)
 ```
 
 The faithful `soliplex-cli config` output, banner comments and all. Start here
@@ -94,6 +114,11 @@ silently dropped.
 
 ```console
 $ soliplex-config room handbook
+# The handbook room: answers from the handbook RAG database only.
+id: handbook
+name: Handbook
+description: Answers questions about the employee handbook.
+system_prompt: "file:prompt.txt"
 ```
 
 Prints the full `room_config.yaml` of the loaded room with that id — comments
@@ -108,7 +133,19 @@ is how you check an edit before shipping it:
 
 ```console
 $ soliplex-config rooms --host-environment alt
+- room_id: handbook
+  name: Handbook
+  description: Answers questions about the employee handbook.
+- room_id: policy-bot
+  name: Policy Bot
+  description: null
+- room_id: onboarding
+  name: Onboarding
+  description: null
 ```
+
+The `onboarding` room is the edit under test: it exists in the `alt` tree, and
+not yet in the one the stack is deployed with.
 
 ## Use it as a library
 
