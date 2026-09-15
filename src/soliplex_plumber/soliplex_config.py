@@ -18,7 +18,7 @@ levels of granularity:
 ``get <key>``
     Print a single value addressed by a dotted path into the parsed config,
     e.g. ``room_paths`` (a list), ``room_paths.0`` (list index), or
-    ``installation.name`` (nested key). Scalars print bare and list-of-scalars
+    ``meta.tool_configs`` (nested key). Scalars print bare and list-of-scalars
     print one per line, so the output is shell-friendly; pass ``--format yaml``
     to dump any value (including nested structures) as YAML.
 
@@ -369,7 +369,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     get.add_argument(
         "key",
-        help="dotted path, e.g. 'room_paths', 'room_paths.0', 'agents.chat'",
+        help=(
+            "dotted path, e.g. 'server_name', 'room_paths', "
+            "'room_paths.0', 'meta.tool_configs'"
+        ),
     )
     get.add_argument(
         "--format",

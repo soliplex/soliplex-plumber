@@ -53,8 +53,11 @@ when you do not yet know which key you want.
 Each `.`-separated segment indexes a mapping by name or a sequence by position:
 
 ```console
-$ soliplex-config get installation.name
+$ soliplex-config get server_name
 Acme Widgets
+
+$ soliplex-config get meta.tool_configs
+acme_widgets.tools.WidgetTools
 
 $ soliplex-config get room_paths
 /environment/rooms/handbook
