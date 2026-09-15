@@ -18,7 +18,7 @@ levels of granularity:
 ``get <key>``
     Print a single value addressed by a dotted path into the parsed config,
     e.g. ``room_paths`` (a list), ``room_paths.0`` (list index), or
-    ``installation.name`` (nested key). Scalars print bare and list-of-scalars
+    ``meta.tool_configs`` (nested key). Scalars print bare and list-of-scalars
     print one per line, so the output is shell-friendly; pass ``--format yaml``
     to dump any value (including nested structures) as YAML.
 
@@ -254,7 +254,7 @@ def _resolve_room_configs(
             unmapped.append(container_path)
             continue
         for cfg in find_room_configs(host_dir):
-            meta = read_room_meta(cfg.read_text())
+            meta = read_room_meta(cfg.read_text(encoding="utf-8"))
             if meta and meta["room_id"] not in seen:
                 seen.add(meta["room_id"])
                 entries.append((meta, cfg))
@@ -347,7 +347,7 @@ def do_room(args: argparse.Namespace) -> int:
 
     for meta, cfg in entries:
         if meta["room_id"] == args.room_id:
-            print(cfg.read_text(), end="")
+            print(cfg.read_text(encoding="utf-8"), end="")
             return 0
     raise RoomNotFound(args.room_id)
 
@@ -369,7 +369,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     get.add_argument(
         "key",
-        help="dotted path, e.g. 'room_paths', 'room_paths.0', 'agents.chat'",
+        help=(
+            "dotted path, e.g. 'server_name', 'room_paths', "
+            "'room_paths.0', 'meta.tool_configs'"
+        ),
     )
     get.add_argument(
         "--format",

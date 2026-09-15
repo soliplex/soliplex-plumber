@@ -21,17 +21,20 @@ import pathlib
 from soliplex_plumber import installation, sections
 
 path = pathlib.Path(project) / sections.INSTALLATION_FILE
-text = path.read_text()
+text = path.read_text(encoding="utf-8")
 
 text, action = installation.add_secret(text, "GITEA_TOKEN")
 
 if action is installation.TargetAction.ADDED:
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
 ```
 
 Keeping the write in the caller's hands is what makes the editors composable
 (below) and trivially dry-runnable — drop the `write_text` and you have a
-preview.
+preview. It also puts the encoding in your hands: `installation.yaml` is UTF-8
+by specification, so pass `encoding="utf-8"` rather than inheriting the host
+locale encoding (`cp1252` on Windows), which would mangle a non-ASCII comment
+or room description on the way through.
 
 ### What the action tells you
 
@@ -148,7 +151,7 @@ text, actions["tool"] = installation.add_meta_tool_config(
 )
 
 if any(action is installation.TargetAction.ADDED for action in actions.values()):
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
 ```
 
 Nothing is written unless at least one edit changed something, and re-running

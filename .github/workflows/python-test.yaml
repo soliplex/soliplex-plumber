@@ -28,12 +28,19 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.12", "3.13", "3.14"]
-        include:
-            # Only enforce coverage on Python >= 3.13.
-            - python-version: "3.12"
-              pytest-args: "--no-cov"
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.13", "3.14"]
+        # Linux is the supported platform and carries the full version
+        # matrix. Windows is checked for portability, on one version:
+        # a break there is a break in the tests, not in the Python.
+        exclude:
+          - os: windows-latest
+            python-version: "3.14"
+    defaults:
+      run:
+        # The steps below are bash ('set -o pipefail', 'tee', the
+        # summary heredoc); a Windows runner would otherwise use 'pwsh'.
+        shell: bash
     steps:
       - uses: actions/checkout@v6
 
@@ -51,7 +58,7 @@ jobs:
       - name: Run unit tests with coverage
         run: |
           set -o pipefail
-          uv run pytest ${{ matrix.pytest-args }} 2>&1 | tee unit-tests.log
+          uv run pytest 2>&1 | tee unit-tests.log
 
       # Slack notification lives in 'ci-failure-notify.yaml', which only
       # links to this run (see #23), so record what failed here.
@@ -59,7 +66,7 @@ jobs:
         if: failure()
         run: |
           {
-            echo "## Python ${{ matrix.python-version }} failed"
+            echo "## ${{ matrix.os }}, Python ${{ matrix.python-version }} failed"
             echo
             for log in unit-tests.log; do
               [ -f "$log" ] || continue

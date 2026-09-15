@@ -155,6 +155,7 @@ def test_run_cli_captures_by_default(tmp_path, which, run):
             stack.cli_command(project, ["config"]),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=True,
         )
     ]
@@ -166,7 +167,12 @@ def test_run_cli_passthrough_does_not_capture(tmp_path, which, run):
     stack.run_cli(project, ["audit", "rooms"], capture=False, check=False)
 
     _, kwargs = run.call_args
-    assert kwargs == {"capture_output": False, "text": True, "check": False}
+    assert kwargs == {
+        "capture_output": False,
+        "text": True,
+        "encoding": "utf-8",
+        "check": False,
+    }
 
 
 def test_run_cli_binds_alternative_installation(alt_installation, which, run):

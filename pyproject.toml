@@ -18,7 +18,7 @@ version = "0.6dev0"
 description = "Read and modify the configuration of an existing Soliplex stack."
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [{ name = "Soliplex" }]
 keywords = ["soliplex", "rooms", "installation", "stack", "configuration"]
 
