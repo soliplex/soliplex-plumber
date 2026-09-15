@@ -254,7 +254,7 @@ def _resolve_room_configs(
             unmapped.append(container_path)
             continue
         for cfg in find_room_configs(host_dir):
-            meta = read_room_meta(cfg.read_text())
+            meta = read_room_meta(cfg.read_text(encoding="utf-8"))
             if meta and meta["room_id"] not in seen:
                 seen.add(meta["room_id"])
                 entries.append((meta, cfg))
@@ -347,7 +347,7 @@ def do_room(args: argparse.Namespace) -> int:
 
     for meta, cfg in entries:
         if meta["room_id"] == args.room_id:
-            print(cfg.read_text(), end="")
+            print(cfg.read_text(encoding="utf-8"), end="")
             return 0
     raise RoomNotFound(args.room_id)
 

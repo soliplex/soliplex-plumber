@@ -178,7 +178,10 @@ The caller patches the copied files afterwards, using the returned
 
 ```python
 config = installed.config_path
-config.write_text(config.read_text().replace("__PACKAGE__", package))
+config.write_text(
+    config.read_text(encoding="utf-8").replace("__PACKAGE__", package),
+    encoding="utf-8",
+)
 ```
 
 ## Try an edit without touching the live stack

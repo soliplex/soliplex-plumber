@@ -53,6 +53,10 @@ Long lines are a hazard when parsing: the container is run with
 `COLUMNS=10000` (`stack.WIDE_COLUMNS`) so that `rich`-formatted output does not
 wrap. Override it with `columns=` if you actually want terminal-width output.
 
+The container's output is decoded as UTF-8, not in the host locale encoding.
+On a Windows host that fallback is `cp1252`, which would mangle a non-ASCII
+room name on its way back out of `soliplex-cli`.
+
 ## See the command without running it
 
 `cli_command` builds the argv that `run_cli` would execute. It touches nothing

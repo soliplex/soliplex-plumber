@@ -279,7 +279,11 @@ def room_parent_candidates(project: pathlib.Path) -> list[str]:
     applies, so the sole candidate is ``"./rooms"``.
     """
     env = project / ENVIRONMENT_DIR
-    lines = (project / INSTALLATION_FILE).read_text().splitlines(keepends=True)
+    lines = (
+        (project / INSTALLATION_FILE)
+        .read_text(encoding="utf-8")
+        .splitlines(keepends=True)
+    )
     span = installation.section_span(lines, sections.ROOM_PATHS.key)
 
     if span is None:
@@ -416,13 +420,15 @@ def _install_room(
 
     installation_path = env / INSTALLATION_FILE.name
     new_text, path_action = _ensure_room_path(
-        installation_path.read_text(), parent_path, room_id
+        installation_path.read_text(encoding="utf-8"),
+        parent_path,
+        room_id,
     )
 
     if not dry_run:
         write_contents(room_dir)
         if path_action == installation.TargetAction.ADDED:
-            installation_path.write_text(new_text)
+            installation_path.write_text(new_text, encoding="utf-8")
 
     return RoomInstalled(config_path=config_path, path_action=path_action)
 
@@ -457,9 +463,13 @@ def install_room(
 
     def _write(room_dir: pathlib.Path) -> None:
         room_dir.mkdir(parents=True, exist_ok=True)
-        (room_dir / "room_config.yaml").write_text(config_text)
+        (room_dir / "room_config.yaml").write_text(
+            config_text, encoding="utf-8"
+        )
         if prompt_text is not None:
-            (room_dir / PROMPT_FILE_NAME).write_text(prompt_text)
+            (room_dir / PROMPT_FILE_NAME).write_text(
+                prompt_text, encoding="utf-8"
+            )
 
     return _install_room(
         project=project,

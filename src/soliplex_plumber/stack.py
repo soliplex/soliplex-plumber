@@ -151,7 +151,9 @@ def run_cli(
     - ``columns``
 
     If ``capture`` is true, capture stdout/stderr for parsing on the returned
-    ``CompletedProcess``;  otherwise they stream to the caller.
+    ``CompletedProcess``;  otherwise they stream to the caller. Either way the
+    container's output is decoded as UTF-8 rather than in the host locale
+    encoding, which would mangle non-ASCII room names on a Windows host.
 
     If ``check`` is True, raise ``subprocess.CalledProcessError`` on a
     non-zero exit.
@@ -166,7 +168,13 @@ def run_cli(
         host_environment=host_environment,
         columns=columns,
     )
-    return subprocess.run(cmd, capture_output=capture, text=True, check=check)
+    return subprocess.run(
+        cmd,
+        capture_output=capture,
+        text=True,
+        encoding="utf-8",
+        check=check,
+    )
 
 
 @dataclasses.dataclass(frozen=True)

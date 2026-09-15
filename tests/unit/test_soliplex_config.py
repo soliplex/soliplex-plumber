@@ -78,7 +78,13 @@ def _expected_run(project: pathlib.Path) -> mock._Call:
         "config",
         "/environment",
     ]
-    return mock.call(cmd, capture_output=True, text=True, check=True)
+    return mock.call(
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
 
 
 # --------------------------------------------------------------------------
