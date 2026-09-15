@@ -28,8 +28,19 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.13", "3.14"]
+        # Linux is the supported platform and carries the full version
+        # matrix. Windows is checked for portability, on one version:
+        # a break there is a break in the tests, not in the Python.
+        exclude:
+          - os: windows-latest
+            python-version: "3.14"
+    defaults:
+      run:
+        # The steps below are bash ('set -o pipefail', 'tee', the
+        # summary heredoc); a Windows runner would otherwise use 'pwsh'.
+        shell: bash
     steps:
       - uses: actions/checkout@v6
 
@@ -55,7 +66,7 @@ jobs:
         if: failure()
         run: |
           {
-            echo "## Python ${{ matrix.python-version }} failed"
+            echo "## ${{ matrix.os }}, Python ${{ matrix.python-version }} failed"
             echo
             for log in unit-tests.log; do
               [ -f "$log" ] || continue
