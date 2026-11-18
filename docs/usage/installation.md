@@ -46,7 +46,7 @@ or room description on the way through.
 
 `COVERED` is the interesting one, and it is why the editors consult the
 [section catalog](sections.md): an absent section is not an empty section. See
-[Whitelist a skill](#whitelist-a-skill) for the case where writing the
+[Add a skill to the allow-list](#add-a-skill-to-the-allow-list) for the case where writing the
 "obvious" entry would turn other things off.
 
 ## Add an environment variable
@@ -104,9 +104,9 @@ meta:
     - "acme_widgets.tools.WidgetTools"
 ```
 
-## Whitelist a skill
+## Add a skill to the allow-list
 
-`skill_configs` is a per-`kind` whitelist, and an *empty* whitelist for a kind
+`skill_configs` is a per-`kind` allow-list, and an *empty* allow-list for a kind
 is permissive: every discovered skill of that kind is enabled. So blindly
 appending your skill is the one edit here that can turn other things off — it
 flips the kind from "everything" to "only what is listed". `add_skill_config`
@@ -115,8 +115,8 @@ refuses to do that silently:
 ```python
 try:
     text, action = installation.add_skill_config(text, "soliplex-concierge-room")
-except installation.WhitelistActive as exc:
-    print(f"{exc.kind} skills already whitelisted: {', '.join(exc.entries)}")
+except installation.AllowListActive as exc:
+    print(f"{exc.kind} skills already allowed: {', '.join(exc.entries)}")
     text, action = installation.add_skill_config(
         text, "soliplex-concierge-room", confirm=True
     )
@@ -128,12 +128,12 @@ The three outcomes:
 - the kind has **no** entries, including an absent section → `COVERED`; the
   skill is already enabled, and adding it would disable the stack's other
   skills of that kind;
-- the kind has an explicit whitelist and your skill is not in it → raise
-  `WhitelistActive`, unless `confirm=True`, in which case it is appended →
+- the kind has an explicit allow-list and your skill is not in it → raise
+  `AllowListActive`, unless `confirm=True`, in which case it is appended →
   `ADDED`.
 
-`WhitelistActive` carries `.kind` and `.entries` so a CLI can show the operator
-exactly what is currently whitelisted before asking them to confirm. `kind`
+`AllowListActive` carries `.kind` and `.entries` so a CLI can show the operator
+exactly what is currently allowed before asking them to confirm. `kind`
 defaults to `"filesystem"`.
 
 ## Compose several edits
@@ -193,8 +193,8 @@ shows up in hand-edited files.
 
 !!! warning "These primitives assume a collection section"
     `add_list_entry` creates the section when it is absent, which is right for
-    a *collection* (default empty) and wrong for a *discovery* list or a
-    *whitelist*. Check the [section catalog](sections.md) before reaching for
+    a *collection* (default empty) and wrong for a *discovery* list or an
+    *allow-list*. Check the [section catalog](sections.md) before reaching for
     it; for `room_paths` in particular, use
     [`rooms.install_room`](rooms.md), which knows the default-covering rules.
 

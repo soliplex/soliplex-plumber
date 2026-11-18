@@ -10,11 +10,11 @@ verbatim.
 - Scanning is **comment-skipping**, fixing two classes of false positive
   in the older whole-file probes.
 
-The edtiros are **default-aware** (see :mod:`soliplex_plumber.sections`):
+The edtiors are **default-aware** (see :mod:`soliplex_plumber.sections`):
 
 - an absent *collection* section is created
 
-- a *whitelist* (``skill_configs``) that is permissive for a kind is left
+- an *allow-list* (``skill_configs``) that is permissive for a kind is left
   alone (``COVERED``) rather than flipped restrictive.
 
 The named helpers own the *shape* of each section; the caller
@@ -75,16 +75,16 @@ class TargetAction(enum.StrEnum):
     UNCHANGED = "unchanged"
 
     # The target is already satisfied without an edit -- a discovery default
-    # or parent covers it, or a whitelist is permissive for its kind.
+    # or parent covers it, or an allow-list is permissive for its kind.
     COVERED = "covered"
 
 
-class WhitelistActive(Exception):
-    """A ``skill_configs`` kind already has an explicit whitelist.
+class AllowListActive(Exception):
+    """A ``skill_configs`` kind already has an explicit allow-list.
 
     Adding our skill is safe (append-only) but narrows operator-curated config,
     so plumber refuses unless the caller passes ``confirm=True``. Carries the
-    ``kind`` and the skills currently whitelisted for it, for a CLI to render.
+    ``kind`` and the skills currently allowed for it, for a CLI to render.
     """
 
     def __init__(self, kind: str, entries: list[str]):
@@ -92,8 +92,8 @@ class WhitelistActive(Exception):
         self.entries = list(entries)
         listed = ", ".join(self.entries) or "(none)"
         super().__init__(
-            f"skill_configs already whitelists {kind!r} skills ({listed}); "
-            "pass confirm=True to add to that whitelist"
+            f"skill_configs already allows {kind!r} skills ({listed}); "
+            "pass confirm=True to add to that allow-list"
         )
 
 
@@ -293,9 +293,9 @@ def add_skill_config(
     kind: str = "filesystem",
     confirm: bool = False,
 ) -> tuple[str, TargetAction]:
-    """Whitelist ``skill_name`` (of ``kind``) in ``skill_configs:``.
+    """Allow ``skill_name`` (of ``kind``) in ``skill_configs:``.
 
-    ``skill_configs`` is a per-kind whitelist that is *permissive* when a kind
+    ``skill_configs`` is a per-kind allow-list that is *permissive* when a kind
     has no entries (every discovered skill of that kind is enabled). So:
 
     - the exact ``skill_name`` is already listed ⇒ ``UNCHANGED``;
@@ -304,8 +304,8 @@ def add_skill_config(
       skill is already enabled, and adding it would flip the kind restrictive
       and disable the stack's other skills of that kind;
 
-    - the kind has an explicit whitelist and our skill is missing ⇒ raise
-      :class:`WhitelistActive` (unless ``confirm``), else append ⇒ ``ADDED``.
+    - the kind has an explicit allow-list and our skill is missing ⇒ raise
+      :class:`AllowListActive` (unless ``confirm``), else append ⇒ ``ADDED``.
     """
     lines = text.splitlines(keepends=True)
     span = section_span(lines, sections.SKILL_CONFIGS.key)
@@ -321,7 +321,7 @@ def add_skill_config(
         return text, TargetAction.COVERED
 
     if not confirm:
-        raise WhitelistActive(kind, same_kind)
+        raise AllowListActive(kind, same_kind)
 
     block = [
         f'  - skill_name: "{skill_name}"\n',

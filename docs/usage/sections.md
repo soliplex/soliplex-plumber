@@ -19,7 +19,7 @@ applies a different default to each:
 | --- | --- | --- |
 | `DISCOVERY` | a directory (`room_paths` → `["./rooms"]`) | is already `COVERED` if it lives under that directory; writing the section must first materialize the default, or rooms already being discovered would stop being |
 | `COLLECTION` | empty (`secrets` → `[]`) | means creating the section — nothing is lost |
-| `WHITELIST` | permissive per `kind` (every discovered skill is enabled) | would flip that kind restrictive and disable everything not listed, so the editors report `COVERED` instead |
+| `ALLOW_LIST` | permissive per `kind` (every discovered skill is enabled) | would flip that kind restrictive and disable everything not listed, so the editors report `COVERED` instead |
 
 The catalog records which family each section belongs to, so that rule lives in
 one place instead of being re-derived by every caller.
@@ -42,7 +42,7 @@ sections.SKILL_CONFIGS.kind_field       # 'kind'
 The catalog entries are `ROOM_PATHS`, `ENVIRONMENT`, `SECRETS`,
 `META_TOOL_CONFIGS` and `SKILL_CONFIGS`. `Section` is a frozen dataclass, so
 the facts are read-only; the fields that do not apply to a family are `None`
-(only `DISCOVERY` sections have a `discovery_default`, only `WHITELIST`
+(only `DISCOVERY` sections have a `discovery_default`, only `ALLOW_LIST`
 sections a `kind_field`, and only nested sections a `parent`).
 
 Using the catalog rather than a string literal keeps a consumer honest if a

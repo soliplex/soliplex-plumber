@@ -12,7 +12,7 @@ to decide an absent section's behavior. It mirrors
 - plain collections default to empty (``secrets`` -> ``[]``, ``environment`` ->
   ``{}``, ``meta.tool_configs`` -> ``[]``); an absent section must be *created*
   to add an entry;
-- ``skill_configs`` is a per-``kind`` whitelist: empty/absent for a kind is
+- ``skill_configs`` is a per-``kind`` allow-list: empty/absent for a kind is
   *permissive* (every discovered skill of that kind is enabled), so adding the
   first entry of a kind would flip it restrictive (``resolve_skill_configs``).
 
@@ -31,7 +31,7 @@ class Family(enum.Enum):
 
     DISCOVERY = "discovery"
     COLLECTION = "collection"
-    WHITELIST = "whitelist"
+    ALLOW_LIST = "allow-list"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -43,7 +43,7 @@ class Section:
     parent: str | None = None  # nested key, e.g. ``meta`` for ``tool_configs``
     discovery_default: str | None = None  # DISCOVERY: the default dir
     kind_field: str | None = (
-        None  # WHITELIST: the per-entry kind discriminator
+        None  # ALLOW_LIST: the per-entry kind discriminator
     )
 
 
@@ -53,7 +53,7 @@ ROOM_PATHS = Section(
 ENVIRONMENT = Section("environment", Family.COLLECTION)
 SECRETS = Section("secrets", Family.COLLECTION)
 META_TOOL_CONFIGS = Section("tool_configs", Family.COLLECTION, parent="meta")
-SKILL_CONFIGS = Section("skill_configs", Family.WHITELIST, kind_field="kind")
+SKILL_CONFIGS = Section("skill_configs", Family.ALLOW_LIST, kind_field="kind")
 
 
 # Stack-structure constants: the files/dirs that mark a generated stack and
