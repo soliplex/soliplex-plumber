@@ -801,7 +801,7 @@ applies a different default to each:</p>
 <td>means creating the section — nothing is lost</td>
 </tr>
 <tr>
-<td><code>WHITELIST</code></td>
+<td><code>ALLOW_LIST</code></td>
 <td>permissive per <code>kind</code> (every discovered skill is enabled)</td>
 <td>would flip that kind restrictive and disable everything not listed, so the editors report <code>COVERED</code> instead</td>
 </tr>
@@ -824,7 +824,7 @@ one place instead of being re-derived by every caller.</p>
 <p>The catalog entries are <code>ROOM_PATHS</code>, <code>ENVIRONMENT</code>, <code>SECRETS</code>,
 <code>META_TOOL_CONFIGS</code> and <code>SKILL_CONFIGS</code>. <code>Section</code> is a frozen dataclass, so
 the facts are read-only; the fields that do not apply to a family are <code>None</code>
-(only <code>DISCOVERY</code> sections have a <code>discovery_default</code>, only <code>WHITELIST</code>
+(only <code>DISCOVERY</code> sections have a <code>discovery_default</code>, only <code>ALLOW_LIST</code>
 sections a <code>kind_field</code>, and only nested sections a <code>parent</code>).</p>
 <p>Using the catalog rather than a string literal keeps a consumer honest if a
 section is ever renamed:</p>

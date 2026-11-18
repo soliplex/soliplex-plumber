@@ -752,7 +752,7 @@ truth). The editors consult it to decide an absent section's behavior.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>Family</code> (<code>DISCOVERY</code> / <code>COLLECTION</code> / <code>WHITELIST</code>)</td>
+<td><code>Family</code> (<code>DISCOVERY</code> / <code>COLLECTION</code> / <code>ALLOW_LIST</code>)</td>
 <td>how a section behaves when an entry is added</td>
 </tr>
 <tr>
@@ -772,7 +772,7 @@ truth). The editors consult it to decide an absent section's behavior.</p>
 <p>The families: <strong>discovery</strong> lists default to a directory (<code>room_paths</code> →
 <code>["./rooms"]</code>), so an entry beneath the default is already <em>covered</em> when the
 section is absent; <strong>collection</strong> sections default to empty, so an absent section
-is <em>created</em> to add an entry; <strong>whitelist</strong> (<code>skill_configs</code>) is permissive per
+is <em>created</em> to add an entry; <strong>allow-list</strong> (<code>skill_configs</code>) is permissive per
 <code>kind</code> — empty/absent for a kind enables every discovered skill of it.</p>
 <h2 id="installation-edit-a-stacks-installationyaml"><code>installation</code> — edit a stack's <code>installation.yaml</code><a class="headerlink" href="#installation-edit-a-stacks-installationyaml" title="Permanent link">&para;</a></h2>
 <div class="admonition tip">
@@ -813,15 +813,15 @@ and <strong>comment-skipping</strong>.</p>
 </tr>
 <tr>
 <td><code>add_skill_config(text, skill_name, *, kind="filesystem", confirm=False)</code></td>
-<td>whitelist a skill; <code>COVERED</code> when the kind is permissive; raises <code>WhitelistActive</code> when a kind's whitelist is active (unless <code>confirm</code>)</td>
+<td>add a skill to the allow-list; <code>COVERED</code> when the kind is permissive; raises <code>AllowListActive</code> when a kind's allow-list is active (unless <code>confirm</code>)</td>
 </tr>
 <tr>
 <td><code>resolve_stack(stack_dir, markers, error)</code></td>
 <td>resolve a stack root requiring every marker; <code>error(stack, marker)</code> builds the raised exception</td>
 </tr>
 <tr>
-<td><code>WhitelistActive(kind, entries)</code></td>
-<td>the one "stop and confirm" abort — a <code>skill_configs</code> kind already has an explicit whitelist</td>
+<td><code>AllowListActive(kind, entries)</code></td>
+<td>the one "stop and confirm" abort — a <code>skill_configs</code> kind already has an explicit allow-list</td>
 </tr>
 <tr>
 <td><code>section_span</code> / <code>is_item</code> / <code>append_section</code></td>
