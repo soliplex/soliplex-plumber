@@ -21,7 +21,7 @@ truth). The editors consult it to decide an absent section's behavior.
 
 | Member | Purpose |
 | --- | --- |
-| `Family` (`DISCOVERY` / `COLLECTION` / `WHITELIST`) | how a section behaves when an entry is added |
+| `Family` (`DISCOVERY` / `COLLECTION` / `ALLOW_LIST`) | how a section behaves when an entry is added |
 | `Section(key, family, parent=None, discovery_default=None, kind_field=None)` | one section's declarative facts |
 | `ROOM_PATHS` / `ENVIRONMENT` / `SECRETS` / `META_TOOL_CONFIGS` / `SKILL_CONFIGS` | the catalog entries |
 | `COMPOSE_FILE` / `ENVIRONMENT_DIR` / `INSTALLATION_FILE` / `ROOMS_DIR` / `STACK_MARKERS` | stack-structure constants (re-exported by `rooms`) |
@@ -29,7 +29,7 @@ truth). The editors consult it to decide an absent section's behavior.
 The families: **discovery** lists default to a directory (`room_paths` →
 `["./rooms"]`), so an entry beneath the default is already *covered* when the
 section is absent; **collection** sections default to empty, so an absent section
-is *created* to add an entry; **whitelist** (`skill_configs`) is permissive per
+is *created* to add an entry; **allow-list** (`skill_configs`) is permissive per
 `kind` — empty/absent for a kind enables every discovered skill of it.
 
 ## `installation` — edit a stack's `installation.yaml`
@@ -49,9 +49,9 @@ and **comment-skipping**.
 | `add_environment(text, var_name)` | add `var_name` to `environment:` |
 | `add_secret(text, secret_name, *, env_var_name=None)` | add an `env_var`-sourced secret to `secrets:` |
 | `add_meta_tool_config(text, class_path)` | register `class_path` under nested `meta.tool_configs:` |
-| `add_skill_config(text, skill_name, *, kind="filesystem", confirm=False)` | whitelist a skill; `COVERED` when the kind is permissive; raises `WhitelistActive` when a kind's whitelist is active (unless `confirm`) |
+| `add_skill_config(text, skill_name, *, kind="filesystem", confirm=False)` | add a skill to the allow-list; `COVERED` when the kind is permissive; raises `AllowListActive` when a kind's allow-list is active (unless `confirm`) |
 | `resolve_stack(stack_dir, markers, error)` | resolve a stack root requiring every marker; `error(stack, marker)` builds the raised exception |
-| `WhitelistActive(kind, entries)` | the one "stop and confirm" abort — a `skill_configs` kind already has an explicit whitelist |
+| `AllowListActive(kind, entries)` | the one "stop and confirm" abort — a `skill_configs` kind already has an explicit allow-list |
 | `section_span` / `is_item` / `append_section` | low-level scoped, comment-aware scan helpers (shared with `rooms`) |
 | `TargetAction(StrEnum)` (`ADDED` / `UNCHANGED` / `COVERED`) | the action a helper reports |
 

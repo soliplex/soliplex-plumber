@@ -17,10 +17,10 @@ def test_room_paths_is_a_discovery_section():
     assert section.discovery_default == "./rooms"
 
 
-def test_skill_configs_is_a_per_kind_whitelist():
+def test_skill_configs_is_a_per_kind_allow_list():
     section = sections.SKILL_CONFIGS
 
-    assert section.family is sections.Family.WHITELIST
+    assert section.family is sections.Family.ALLOW_LIST
     assert section.kind_field == "kind"
 
 

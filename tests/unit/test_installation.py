@@ -47,10 +47,10 @@ meta:
     - "pkg.First"
 """
 
-# A skill_configs whitelist carrying a comment among its items.
+# A skill_configs allow-list carrying a comment among its items.
 _SKILL_CONFIGS_COMMENTED_YAML = """\
 skill_configs:
-  # curated whitelist
+  # curated allow-list
   - skill_name: "bare-bones"
     kind: "filesystem"
 """
@@ -340,7 +340,7 @@ def test_add_meta_tool_config_unchanged():
 
 
 # --------------------------------------------------------------------------
-# add_skill_config (per-kind whitelist)
+# add_skill_config (per-kind allow-list)
 # --------------------------------------------------------------------------
 def test_add_skill_config_unchanged_when_present():
     new, action = installation.add_skill_config(
@@ -381,8 +381,8 @@ def test_add_skill_config_skips_comments_in_block():
     assert new == _SKILL_CONFIGS_COMMENTED_YAML
 
 
-def test_add_skill_config_aborts_on_active_whitelist():
-    with pytest.raises(installation.WhitelistActive) as exc:
+def test_add_skill_config_aborts_on_active_allow_list():
+    with pytest.raises(installation.AllowListActive) as exc:
         installation.add_skill_config(
             _INSTALLATION_YAML, "soliplex-docs", kind="filesystem"
         )
